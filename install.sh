@@ -31,18 +31,6 @@ install_skill() {
     ok "$SKILL_NAME 已安装到 $target"
 }
 
-check_omo() {
-    if grep -q "oh-my-opencode" "$HOME/.opencode/opencode.json" 2>/dev/null || \
-       grep -q "oh-my-opencode" "$HOME/.config/opencode/opencode.json" 2>/dev/null; then
-        ok "oh-my-opencode（OMO）已安装"
-        return 0
-    fi
-    warn "未检测到 oh-my-opencode（OMO）。本 skill 依赖 OMO 的 oracle 子 agent"
-    warn "安装 OMO：opencode plugins add oh-my-opencode"
-    warn "或者把你的 OpenCode API Key 配置到 OMO 后重启"
-    return 1
-}
-
 check_mcp() {
     local name="$1"
     local config="$2"
@@ -53,7 +41,7 @@ check_mcp() {
     return 1
 }
 
-check_python() {
+ensure_python() {
     if command -v python3 &>/dev/null; then
         ok "Python3 可用: $(python3 --version 2>&1)"
         PYTHON=python3
@@ -61,21 +49,49 @@ check_python() {
         ok "Python 可用: $(python --version 2>&1)"
         PYTHON=python
     else
-        warn "未检测到 Python。Scrapling 需要 Python 环境"
-        warn "安装 Python：https://www.python.org/downloads/"
-        return 1
+        warn "未检测到 Python。正在尝试安装..."
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            command -v brew &>/dev/null && brew install python && PYTHON=python3
+        elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            command -v apt &>/dev/null && sudo apt install -y python3 && PYTHON=python3
+            command -v yum &>/dev/null && sudo yum install -y python3 && PYTHON=python3
+        fi
+        if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
+            warn "自动安装失败，请手动安装 Python：https://www.python.org/downloads/"
+            return 1
+        fi
+        ok "Python 已安装: $($PYTHON --version 2>&1)"
     fi
 }
 
-check_scrapling() {
+ensure_scrapling() {
     if $PYTHON -c "import scrapling" 2>/dev/null; then
         local ver=$($PYTHON -c "import scrapling; print(getattr(scrapling, '__version__', '?'))")
         ok "Scrapling 已安装 ($ver)"
         return 0
     fi
-    warn "Scrapling 未安装（网页抓取需要）"
-    warn "安装：pip install scrapling"
-    return 1
+    log "正在安装 Scrapling..."
+    if $PYTHON -m pip install scrapling -q; then
+        ok "Scrapling 安装成功"
+    else
+        warn "Scrapling 安装失败，手动执行：pip install scrapling"
+        return 1
+    fi
+}
+
+ensure_omo() {
+    if grep -q "oh-my-opencode" "$HOME/.opencode/opencode.json" 2>/dev/null || \
+       grep -q "oh-my-opencode" "$HOME/.config/opencode/opencode.json" 2>/dev/null; then
+        ok "oh-my-openagent（OMO）已安装"
+        return 0
+    fi
+    log "正在安装 oh-my-openagent..."
+    if command -v opencode &>/dev/null; then
+        opencode plugins add oh-my-openagent && ok "OMO 安装成功" || warn "OMO 安装失败，手动执行：opencode plugins add oh-my-openagent"
+    else
+        warn "未安装 OpenCode，无法自动安装 OMO"
+        return 1
+    fi
 }
 
 main() {
@@ -97,11 +113,10 @@ main() {
 
     install_skill "$skills_dir/$SKILL_NAME"
 
-    check_omo
-
-    log "检查 Python 环境..."
-    check_python || true
-    check_scrapling || true
+    log "确保前置依赖..."
+    ensure_omo || true
+    ensure_python || true
+    ensure_scrapling || true
 
     local oc_config=""
     for cfg in "$HOME/.opencode/opencode.json" "$HOME/.opencode/opencode.jsonc" \
@@ -112,8 +127,8 @@ main() {
 
     if [ -n "$oc_config" ]; then
         log "检查 MCP 配置..."
-        check_mcp "exa" "$oc_config" || warn "Exa MCP 未配置（搜索需要）"
-        check_mcp "scrapling" "$oc_config" || warn "Scrapling MCP 未配置（抓取需要）"
+        check_mcp "exa" "$oc_config" || warn "Exa MCP 未配置（搜索会降级到备用搜索）"
+        check_mcp "scrapling" "$oc_config" || warn "Scrapling MCP 未配置（会使用 Python scrapling 直连）"
     fi
 
     log "注册 /research 命令..."
