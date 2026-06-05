@@ -6,7 +6,13 @@
 
 **非 OpenCode 独占。** Claude Code、Codex CLI、Cursor、Windsurf、Cline、Aider、Continue.dev 等主流 AI 编码工具读取本项目后稍作改造即可使用。
 
-多 agent 编排（OpenCode 的 `task()`）思路通用，各平台有自己的等价机制，照猫画虎就行。Scrapling 和 Exa 搜索都是标准 Python/HTTP 工具，不绑定平台。本 skill 的核心价值在于实现思路，而非适配某个特定工具。
+多 agent 编排（OpenCode 的 `task()`）思路通用，各平台有自己的等价机制，照猫画虎就行。Scrapling 和 Exa 搜索都是标准 Python/HTTP 工具，不绑定平台。
+
+本 skill 的核心价值在于实现思路，而非适配某个特定工具。
+
+如果你用不同的 CLI 工具，你可以定义任何搜索工具，或者在 Rules.md 和 Types.md 中修改对特定行业的需求。
+
+注意，适配调研任何主题，不光是能做行业研报哦！看我出的案例报告就知道啦。
 
 ---
 
@@ -200,4 +206,4 @@ MIT
 
 ---
 
-> 社区讨论：[LINUX DO](https://linux.do/)
+> 社区讨论：[LINUX DO](https://linux.do/t/topic/2312608)
