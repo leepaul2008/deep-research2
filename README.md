@@ -193,3 +193,7 @@ curl -fsSL https://opencode.ai/install | bash
 ## License
 
 MIT
+
+---
+
+> 社区讨论：[LINUX DO](https://linux.do/)
