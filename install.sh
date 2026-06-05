@@ -87,6 +87,27 @@ main() {
         check_mcp "scrapling" "$oc_config" || warn "Scrapling MCP 未配置（抓取需要）"
     fi
 
+    log "注册 /research 命令..."
+    local cmd_src="$skills_dir/$SKILL_NAME/command/research.md"
+    local cmd_dirs=("$HOME/.config/opencode/command" "$HOME/.opencode/command")
+    if [ -n "${XDG_DATA_HOME:-}" ]; then
+        cmd_dirs+=("$XDG_DATA_HOME/opencode/command")
+    fi
+    local installed_cmd=false
+    for cmd_dir in "${cmd_dirs[@]}"; do
+        eval cmd_dir="$cmd_dir"
+        if [ -d "$(dirname "$cmd_dir")" ] || [ -d "$cmd_dir" ]; then
+            mkdir -p "$cmd_dir"
+            cp "$cmd_src" "$cmd_dir/research.md"
+            ok "/research 命令已注册到 $cmd_dir/research.md"
+            installed_cmd=true
+            break
+        fi
+    done
+    if [ "$installed_cmd" = false ]; then
+        warn "未找到 OpenCode 配置目录，手动复制 command/research.md 到 .opencode/command/ 下"
+    fi
+
     echo ""
     echo "────────────────────────────────────────"
     printf "${GREEN}安装完成！${NC}\n"
