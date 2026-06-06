@@ -13,7 +13,8 @@
 本章预定义了以下子节：`[sections 列表]`。请严格按此列表划分，不可增减。
 
 ### 格式
-- 纯中文，数字带来源（机构，年份）
+- 纯中文，所有来源必须严格使用 `（机构，年份）` 格式（全角括号、全角或半角逗号均可，例：`（Wikipedia，2025）`），后续会自动转换为编号引用 `[N]`
+- 不要在正文中使用 `（机构, 年份）` 以外的其他引用格式
 - 每章以 `>` 引用格式的核心判断开头
 - 正文段落 ≥ {min_paragraphs} 段（整章合计），数据表 ≥ 3 张
 - 字数上限 {per_chapter_chars} 字。如需确认字数，**只准运行** `python {TOOLSDIR}/dr_tools.py word-count {TMPDIR}/chapters/chapter-{N}.md`，禁止写 inline PowerShell/Python 去算。

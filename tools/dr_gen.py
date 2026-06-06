@@ -160,10 +160,10 @@ def _read_json_handle_bom(path: str):
 
 
 def convert_citations(report_path: str, datapool_path: str, output_path: str = None) -> dict:
-    """Convert （机构，年份） citations to [^N] footnote links with reference list.
+    """Convert （机构，年份） citations to [N](#refN) clickable links with reference list.
 
-    [^N] in body links to [^N]: description at bottom — supports clickable
-    back-and-forth navigation in most markdown renderers.
+    [N] in body links to <a id="refN"> at bottom — supports clickable
+    navigation in most markdown renderers.
     """
     with open(report_path, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -242,7 +242,34 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
         f.write(new_content)
     os.replace(tmp, output)
 
-    return {"passed": True, "changes": len(ordered), "output": output}
+    # ── Post-conversion validation ──
+    issues = []
+    body = new_content.split('## 参考来源')[0] if '## 参考来源' in new_content else new_content
+
+    # Check 1: any remaining （机构，年份） patterns that weren't converted
+    remaining = CITATION_RE.findall(body)
+    if remaining:
+        issues.append(f"{len(remaining)} unconverted （机构，年份） patterns remain in body")
+
+    # Check 2: every [N] in body has a matching ref anchor
+    body_refs = set(re.findall(r'\[(\d+)\]\(#ref\d+\)', body))
+    ref_anchors = set(re.findall(r'<a id="ref(\d+)"></a>', new_content))
+    missing_in_refs = body_refs - ref_anchors
+    orphan_anchors = ref_anchors - body_refs
+    if missing_in_refs:
+        issues.append(f"Citations without matching reference: [{', '.join(sorted(missing_in_refs, key=int))}]")
+    if orphan_anchors:
+        # Orphan anchors are acceptable (might have more refs than citations used)
+        pass
+
+    return {
+        "passed": len(issues) == 0,
+        "changes": len(ordered),
+        "output": output,
+        "issues": issues,
+        "citation_count": len(body_refs),
+        "ref_count": len(ref_anchors),
+    }
 
 
 # ── Encoding-safe stdin reader (cross-platform) ─────────────────────────────
