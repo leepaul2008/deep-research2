@@ -85,7 +85,7 @@ python {TOOLSDIR}/dr_tools.py year-density <报告> --target-year N # 年份
 
 年份密度检查：如果 `time_anchor.mode == "relaxed"`，**跳过 year-density 检查**（指南/教程类主题不要求时效性）。年份密度不达标但其他项目全过 → 加声明继续。
 
-字数超标 → 用 `word-count` 获取精确字数，对比全文上限（quick 6,000 / standard 10,000 / deep 20,000）。**超标即不通过**，在 manifest 中标记 `word_count_exceeded: true`，由主 agent 决定是否降级接受或重跑。
+字数超标 → 用 `word-count` 获取精确字数，对比 `profiles.json` 中当前模式的 `max_chars`。**不阻塞**，在 manifest 中标记 `word_count_exceeded: true` 即可，最终汇报时一并显示。
 其他项不达标 → 局部补刀（单章重写，最多 1 次）。
 
 ## Step 3 — 清理

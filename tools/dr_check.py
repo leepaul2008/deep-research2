@@ -6,6 +6,21 @@ import json
 import os
 import re
 
+# ── Profile loader ────────────────────────────────────────────────────────
+
+_PROFILES_CACHE = None
+
+def load_profile(mode: str) -> dict:
+    """Load mode profile from profiles.json. Returns dict with max_chapters,
+    max_paragraphs, max_chars for the given mode ('quick'/'standard'/'deep')."""
+    global _PROFILES_CACHE
+    if _PROFILES_CACHE is None:
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(base, 'profiles.json')
+        with open(path, 'r', encoding='utf-8') as f:
+            _PROFILES_CACHE = json.load(f)
+    return _PROFILES_CACHE.get(mode, _PROFILES_CACHE.get('quick', {}))
+
 
 # ── Mojibake & Encoding ──────────────────────────────────────────────────
 
@@ -67,11 +82,7 @@ def word_count(filepath: str) -> int:
     return len(cleaned)
 
 
-def chinese_word_count(filepath: str) -> int:
-    """Count only Chinese characters (\\u4e00-\\u9fff)."""
-    text = _clean_text(filepath)
-    chinese = re.findall(r'[\u4e00-\u9fff]', text)
-    return len(chinese)
+
 
 
 # ── JSON Validation ───────────────────────────────────────────────────────
@@ -379,8 +390,8 @@ def qa_report(filepath: str, mode: str, target_year: int) -> dict:
     results['year_density'] = raw.get('year_density', {"passed": False, "issues": ["missing"]})
 
     wc = raw.get('word_count_raw', 0)
-    limits = {'quick': 6000, 'standard': 10000, 'deep': 20000}
-    limit = limits.get(mode, 16000)
+    prof = load_profile(mode)
+    limit = prof.get('max_chars', 3000)
     # word_count is informational — does NOT block qa_report passed
     results['word_count'] = {"passed": True, "count": wc, "limit": limit, "exceeded": wc > limit,
                               "issues": [] if wc <= limit else [f"{wc} > {limit} limit (informational)"]}
