@@ -4,7 +4,11 @@
 总章节数 total：[total]（报告共有 N 章，用于估算本章字数上限）
 数据池文件：{TMPDIR}/data-pool.json（用 jq 或 grep 提取本章相关子问题的 facts；字段名统一为 src/yr/met/val/u/ctx，quick 模式无 cur/conf，standard/deep 有）
 注意事项文件：{TMPDIR}/cautions.json（含 ⚠️ 标记的事实列表，阅读后留意存疑/过时/冲突数据）
-QA 工具：{TOOLSDIR}/dr_tools.py（通用检查脚本，自检时替代临时写 grep）
+QA 工具：{TOOLSDIR}/dr_tools.py（已有命令：word-count, check-encoding, check-headers, check-chapter-numbers, json-validate）
+
+## ⚠️ 工具使用铁律
+
+**禁止编写任何 Python 脚本**（`.py`）。所有自检操作必须使用 `{TOOLSDIR}/dr_tools.py` 的子命令（Step D 已全部列出）。如果遇到该脚本未覆盖的需求，在 manifest 的 `"notes"` 字段中记录"缺少命令：[描述]"，由主 agent 处理。
 
 ### 标题规则（重要）
 - **章标题由装配阶段自动分配（一、二、三…），撰写时不要加任何章编号**

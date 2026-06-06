@@ -8,7 +8,12 @@
 - 大纲文件：{TMPDIR}/outline.json
 - 工具脚本：{TOOLSDIR}/dr_tools.py（通用 QA 工具，替代临时写 grep/jq）
 - 输出路径：{TMPDIR}/data-pool.json
+- QA 工具：{TOOLSDIR}/dr_tools.py（已有命令：check-datapool, json-validate, word-count）
 - Scrapling MCP 可用性：尝试调用 `scrapling_bulk_get` 检测，可用则使用 Scrapling，不可用则回退 webfetch
+
+## ⚠️ 工具使用铁律
+
+**禁止编写任何 Python 脚本**（`.py`）。所有可复用操作必须使用 `{TOOLSDIR}/dr_tools.py` 的子命令。如果遇到该脚本未覆盖的需求，在 task2_manifest.json 的 `gaps` 字段中记录"缺少命令：[描述]"，由主 agent 处理。
 
 ## 数据收集工作流（严格执行）
 

@@ -6,8 +6,12 @@
 - 注意事项：{TMPDIR}/cautions.json（数据质量警告，装配阶段不写入报告但可参考）
 - 章节目录：{TMPDIR}/chapters/（包含 chapter-1.md, chapter-2.md…）
 - 输出目录：`案例报告/`（`~/.opencode/skills/deep-research/案例报告/`）
-- QA 工具：{TOOLSDIR}/dr_tools.py（全量 QA 检查，替代临时写 grep）
+- QA 工具：{TOOLSDIR}/dr_tools.py（已有命令：assemble-report, convert-citations, qa-report, check-encoding, check-headers, check-chapter-numbers, check-metadata, check-toc, check-tail, word-count, year-density）
 - 数据受限标记：`{data_limited}`（true 时数据来源不足，需降低质量预期）
+
+## ⚠️ 工具使用铁律
+
+**禁止编写任何 Python 脚本**（`.py`）。装配、引用转换、QA 检查必须使用 `{TOOLSDIR}/dr_tools.py` 的子命令。如果遇到该脚本未覆盖的需求，在 task5_manifest.json 的 `"notes"` 字段中记录"缺少命令：[描述]"，由主 agent 处理。
 
 ## Step 1 — 装配
 

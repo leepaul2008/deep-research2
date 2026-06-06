@@ -3,6 +3,11 @@
 ## 输入
 - 大纲文件：{TMPDIR}/outline.json
 - 数据池文件：{TMPDIR}/data-pool.json
+- QA 工具：{TOOLSDIR}/dr_tools.py（已有命令：check-encoding, check-headers, check-datapool, word-count, json-validate）
+
+## ⚠️ 工具使用铁律
+
+**禁止编写任何 Python 脚本**（`.py`）。所有可复用操作必须使用 `{TOOLSDIR}/dr_tools.py` 的子命令。如果遇到该脚本未覆盖的需求，在 task3_manifest.json 的 `summary` 中记录"缺少命令：[描述]"，由主 agent 处理。
 
 ## Step 1 — 预检
 
