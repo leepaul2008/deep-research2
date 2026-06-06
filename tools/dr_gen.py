@@ -240,6 +240,10 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
         issues.append(
             f"Citations without matching reference: [{', '.join(sorted(missing_in_refs, key=int))}]")
 
+    # Convert [N] → [N](#refN) in body for clickable reference links
+    BODY_CITE_RE = re.compile(r'(?<!!)\[(\d+)\](?!\()')
+    new_content = BODY_CITE_RE.sub(r'[\1](#ref\1)', new_content)
+
     # Write output
     output = output_path or report_path
     tmp = output + '.tmp'
