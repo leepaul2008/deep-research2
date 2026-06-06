@@ -185,7 +185,7 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
     # Build mapping: (inst, yr) → ref number
     ref_map = {pair: i + 1 for i, pair in enumerate(ordered)}
 
-    # Replace in-text citations with clickable [^N]
+    # Replace in-text citations with clickable [N](#refN)
     def _replace(m):
         inst = m.group(1).strip()
         yr = m.group(2)
@@ -197,7 +197,7 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
                     break
             if not num:
                 return m.group(0)
-        return f'[^{num}]'
+        return f'[{num}](#ref{num})'
 
     new_content = CITATION_RE.sub(_replace, content)
 
@@ -218,13 +218,13 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
     ref_lines = ["\n\n## 参考来源\n\n"]
     for (inst, yr), num in sorted(ref_map.items(), key=lambda x: x[1]):
         title, url = pool_map.get((inst, yr), (inst, ''))
-        # Avoid redundant "标题 · 来源" when they're the same
         label = title if title == inst else f"{title} · {inst}"
         label = label + (f" · {yr}" if yr else "")
+        anchor = f'<a id="ref{num}"></a>'
         if url:
-            ref_lines.append(f"[^{num}]: [{label}]({url})")
+            ref_lines.append(f'{anchor}[{num}] [{label}]({url})')
         else:
-            ref_lines.append(f"[^{num}]: {label}")
+            ref_lines.append(f'{anchor}[{num}] {label}')
 
     ref_text = '\n'.join(ref_lines)
 
