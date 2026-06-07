@@ -214,11 +214,25 @@ Step 6 — 输出数据池 + 数据质检
 ☐ **来源可信度检查**：逐条检查 priority=high 的 fact 来源。域名后缀 .edu/.gov/.org 或知名研究机构标记可信，自媒体/企业来源标记存疑。
 ☐ **乱码检查**：扫描 facts[].ctx 字段，检查替换字符（\ufffd）或 GBK→UTF-8 Mojibake。
 ☐ **跨事实一致性**：同一指标跨子问题差值 > 20% 且口径不明 → 记录。
+☐ **Adversarial 检查**（仅 priority=high facts）：
+    ☐ **数值量级**：检查有无亿/billion 差 10x、万/million 混淆等量级错误
+    ☐ **虚假平滑**：怀疑完美递增/递减趋势数据（可能为插值伪造）
+    ☐ **来源混淆**：确认指标口径匹配（出货量 vs 零售量、营收 vs 利润等）
+    → 发现问题在 cautions.json 中记录，不阻塞流程
+☐ **缺口处理**：priority=high 但 facts < 2 的子问题 → **补搜**（精确补缺该子问题，3 次 SearXNG 搜索或 webfetch 回退，最多 1 轮）
     ☐ 根据检查结果标记 `data_limited`（独立来源 < 8 或总事实 < 30 时标记 true）。
     ☐ **兜底**：如果脚本反复报错无法通过，用以下命令手动提取 count（放弃脚本统计改为手动）：
        ```
        python -c "import json; d=json.load(open('{TMPDIR}/data-pool.json')); src=set(); [src.update(r['src']) for r in d]; print('source_count:', len(src)); print('fact_count:', sum(len(r['facts']) for r in d))"
        ```
+
+### 输出 cautions.json
+
+使用 `write` 工具创建 `{TMPDIR}/cautions.json`，记录质检中发现的问题：
+
+```json
+{"passed": true, "cautions": [{"sub_question_index": 3, "fact_index": 1, "type": "来源存疑", "detail": "自媒体来源"}]}
+```
 
 ## 硬规则
 1. **搜索引擎优先级**：SearXNG（自建 Layer 1 主力）→ Exa（Layer 2 冷备）→ 免费源补强（Layer 3 兜底）。检测通过即用，不继续探测下级引擎。
