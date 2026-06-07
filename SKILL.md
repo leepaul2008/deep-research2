@@ -1,7 +1,7 @@
 ---
 name: deep-research
 description: "专业深度调研报告生成 — 4 阶段流水线：主 agent 调度 3 个子 agent Task + 1 轮主控并行派发，中间数据通过临时文件传递，不进主会话上下文。"
-version: 1.1.0
+version: 2.1.0
 updated: 2026-06-06
 risk: medium
 ---
@@ -11,7 +11,7 @@ risk: medium
 生成对标券商/第三方研究机构标准的深度调研报告。
 
 - **架构**：主 agent 调度 4 个子 agent Task（大纲/数据/预检/装配）+ 1 轮主控并行派发章节，中间数据走临时文件
-- **数据源**：Exa 搜索 → Scrapling 批量抓取（MCP，需注册，见安装说明）
+- **数据源**：SearXNG（自建 Layer 1）→ Exa（Layer 2 冷备）→ 免费源补强（Layer 3 兜底）→ Scrapling 批量抓取
 - **安装**：见下方「安装与配置」
 - **输出**：`$TMPDIR/outline.json`（临时，非最终报告）
 - **最终报告**：保存到 skill 目录下的 `案例报告/`
@@ -115,7 +115,7 @@ risk: medium
       ```
     → todowrite 全部完成
 
-**禁止**：不要在调度之间插入 Exa 搜索、数据读取、文件检查等操作。一切数据操作都在 Task 内部完成。
+**禁止**：不要在调度之间插入搜索引擎调用、数据读取、文件检查等操作。一切数据操作都在 Task 内部完成。
 
 ---
 
@@ -205,7 +205,8 @@ Task 4 装配 + QA 通过后，内部已完成清理：
 
 | 工具 | 用途 | 免费？ | 国内源？ |
 |:----|:-----|:-----:|:--------:|
-| `websearch_web_search_exa` | 主搜索引擎 | ❌ 付费 | 部分 |
+| SearXNG (webfetch) | 主搜索引擎（Layer 1，自建） | ✅ 自建零费用 | ✅ 70+引擎含百度/搜狗 |
+| `websearch_web_search_exa` | 备用搜索引擎（Layer 2） | ❌ 付费 | 部分 |
 | `scrapling_bulk_get/stealthy/fetch` | 全文抓取（MCP，依赖 opencode.json 注册） | ✅ | **✅ 推荐，国内源主力** |
 | `webfetch` | 抓取回退（Scrapling 不可用时替代） | ✅ | ❌ 远端受限，国内源效果一般 |
 | `bash` | date 时间戳 / 文件操作 | ✅ | — |
@@ -213,7 +214,9 @@ Task 4 装配 + QA 通过后，内部已完成清理：
 
 **补强链路**：
 ```
-Exa → A类搜索（DuckDuckGo/Bing/Semantic Scholar/GDELT via webfetch）
+SearXNG（Layer 1 自建主力，70+引擎）→ Exa（Layer 2 冷备）→ 免费源补强（Layer 3 兜底）
+     ↓
+A类搜索（DuckDuckGo/Bing/Semantic Scholar/GDELT via webfetch）
      → B类国内源（百度百科/199IT/艾瑞/东方财富/知乎/国统局）
      → 全部 URL → 检测 Scrapling MCP 可用性
          ├─ 🔧 可用 → Scrapling 批量抓取全文 → 数据池

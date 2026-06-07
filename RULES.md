@@ -9,8 +9,8 @@
 | 规则 | 说明 | 在哪拦截 |
 |:----|:-----|:---------|
 | **章节约束** | quick 6-8 章 / standard 8-10 章 / deep 10-12 章 | 阶段1 oracle |
-| **可搜索性** | 每个子问题必须能通过 Exa + 免费源（DuckDuckGo/Semantic Scholar/GDELT/Wikipedia）独立搜索 | 阶段1 oracle |
-| **免费源补强** | Exa 结果不足时触发 Step 1.5，补强与 Step 2 抓取并行执行，新 URL 追加到下一轮抓取 | 阶段2 Step 1.5（并行） |
+| **可搜索性** | 每个子问题必须能通过 Search Router + 免费源（DuckDuckGo/Semantic Scholar/GDELT/Wikipedia）独立搜索 | 阶段1 oracle |
+| **免费源补强** | 所有搜索引擎结果不足时触发 Step 1.5，补强与 Step 2 抓取并行执行，新 URL 追加到下一轮抓取 | 阶段2 Step 1.5（并行） |
 | **对比视角** | 至少 1 个反方观点子问题 | 阶段1 oracle |
 | **子节结构完整性** | Oracle 必须为每章定义 sections[]，deep 3-6 节，standard 2-4 节，quick 1-2 节 | 阶段1 oracle |
 
@@ -52,7 +52,7 @@
 | 完美平滑趋势（虚假插值） | 阶段4 章节 agent 自检 |
 | 来源混淆（出货量 vs 零售量） | 阶段4 章节 agent 自检 |
 | 数据不足硬撑行数 | 阶段3 预检阻止 + 阶段4 段落数约束 |
-| **Scrapling 被 Exa 片段替代** | **阶段2 ⚡ 阻断点** |
+| **Scrapling 被搜索引擎摘要片段替代** | **阶段2 ⚡ 阻断点** |
 | **内部编号泄露到正文**（如出现 "以下是C1的分析"） | **阶段4 prompt + 阶段5 grep 检查** |
 | **自定义脚本替代 dr_tools.py**（word-count/check-encoding/assemble-report 等已有命令，不得另写 Python 脚本） | **阶段4/5 主 agent 兜底规则** |
 | **子节使用一、二、三编号**（应与章编号体系分离） | **阶段4 prompt + 阶段5 验收 grep `^### [一二三四五六七八九十]、`** |
