@@ -4,7 +4,7 @@
 
 > **当前版本：** 见 [`VERSION`](VERSION) · [查看更新](https://github.com/hoolulu/deep-research/commits/main)
 
-**一个命令，六分钟，一份深度专业的调研报告。**
+**一个命令，十几分钟，一份深度专业的调研报告。**
 
 ---
 
@@ -45,9 +45,9 @@ AI 编数字 → 看起来合理，但找不到来源。
 | 分析段落    | 155 段（每段含结论 + 数据 + 因果 + 判断）                               |
 | 引用的独立机构 | 18+（中国信通院、艾瑞咨询、国家统计局、百度百科、知乎、36氪、澎湃新闻等） |
 | 反方观点    | 8 处（产能过剩担忧、技术可行性分歧、市场饱和争议等）                               |
-| 数据收集    | ~30-45 秒                                                  |
-| 报告生成    | ~3-4 分钟                                                   |
-| 总耗时     | ~6 分钟                                                     |
+| 数据收集    | ~1-3 分钟                                                  |
+| 报告生成    | ~8-15 分钟                                                   |
+| 总耗时     | ~10-20 分钟                                                     |
 
 📂 **[查看全部案例报告 →](案例报告/)** 点此浏览所有已生成的调研报告，可直接点击打开阅读。
 
@@ -67,10 +67,10 @@ AI 编数字 → 看起来合理，但找不到来源。
 
 ## 五、搜索链路与内置资源
 
-所有工具已内置，无需额外购买。系统采用 **三层级联搜索** 策略：SearXNG（作者已部署的元搜索引擎，70+ 引擎含百度/搜狗）→ Exa（OMO 内置冷备）→ 十多个免费搜索引擎 + 国内数据源（最终兜底）。每层引擎检测通过即用，不继续探测下级，确保响应速度。整个流程如下：
+所有工具已内置，无需额外购买。系统采用 **三层级联搜索** 策略：SearXNG（作者已部署的元搜索引擎，70+ 引擎含百度/Google/Brave）→ Exa（OMO 内置冷备）→ 十多个免费搜索引擎 + 国内数据源（最终兜底）。每层引擎检测通过即用，不继续探测下级，确保响应速度。整个流程如下：
 
 ```
-Layer 1 — SearXNG（作者部署，70+ 引擎含百度/搜狗，开箱即用）
+Layer 1 — SearXNG（作者部署，70+ 引擎含百度/Google/Brave，开箱即用）
   ↓ 不可用时
 Layer 2 — Exa（OMO 内置冷备，零费用）
   ↓ 不可用时
@@ -105,9 +105,9 @@ Layer 3 — 免费源补强（兜底）
 
 | 命令 | 用途 | 最少章数 | 最少段落/章 | 字数上限（字符） | 参考耗时 |
 |------|------|---------|------------|----------------|---------|
-| `/research 主题` | standard 默认 | 8 | ≥ 5 | ≤ 12,000 | ~6–10 min |
-| `/research 主题 -quick` | 快速洞察 | 5 | ≥ 4 | ≤ 8,000 | ~5–8 min |
-| `/research 主题 -deep` | 极致深度 | 10 | ≥ 6 | ≤ 25,000 | ~12–18 min |
+| `/research 主题` | standard 默认 | 8 | ≥ 5 | ≤ 12,000 | ~10–15 min |
+| `/research 主题 -quick` | 快速洞察 | 5 | ≥ 4 | ≤ 8,000 | ~8–12 min |
+| `/research 主题 -deep` | 极致深度 | 10 | ≥ 6 | ≤ 25,000 | ~15–25 min |
 > 以上参数见 `profiles.json`，修改该文件后重启软件即全局生效。字数 = 去掉空格和 Markdown 语法的纯字符数。
 
 ## 八、运行截图
@@ -165,7 +165,7 @@ curl -fsSL https://opencode.ai/install | bash
 | ------------------------------------ | ---------------------------------------- | ---------------------------------------------------------------------- |
 | **OpenCode**                         | AI 编码 agent 运行时                          | `curl -fsSL [https://opencode.ai/install](https://opencode.ai/install) |
 | **oh-my-openagent（OH-MY-OPENAGENT）** | 提供分析/搜索等子 agent + 自动配置 MCP | `opencode plugins add oh-my-openagent`                                 |
-| **SearXNG**                         | 网页搜索（主力，作者已部署 70+ 引擎含百度/搜狗） | 内置默认端点，开箱即用（替换教程见 FAQ）                                      |
+| **SearXNG**                         | 网页搜索（主力，作者已部署 70+ 引擎含百度/Google/Brave） | 内置默认端点，开箱即用                                      |
 | **Exa MCP**                          | 网页搜索（冷备）                             | 由 OMO 自动配置                                                             |
 | **Scrapling + MCP Server**           | 网页全文抓取                                   | `pip install scrapling` + AI 自动在 `opencode.json` 中注册 MCP 配置 |
 
@@ -177,9 +177,9 @@ curl -fsSL https://opencode.ai/install | bash
 安装并重启 OpenCode 后，在聊天框输入：
 
 ```
-/research 你的主题             # standard 模式，~6-10 分钟
-/research 你的主题 -quick       # quick 模式，~5-8 分钟
-/research 你的主题 -deep        # deep 模式，~12-18 分钟
+/research 你的主题             # standard 模式，~10-15 分钟
+/research 你的主题 -quick       # quick 模式，~8-12 分钟
+/research 你的主题 -deep        # deep 模式，~15-25 分钟
 ```
 
 检查更新：`/research-update`
@@ -232,13 +232,13 @@ curl -fsSL https://opencode.ai/install | bash
 
 系统采用 **三层级联搜索** 架构，每层引擎各自独立，上层失效自动降级到下层：
 
-- **Layer 1 — SearXNG（作者部署）**：作者在 VPS 上部署的元搜索引擎，聚合 70+ 搜索引擎（含百度/搜狗/Google/Bing），中文英文全覆盖。内置默认端点，开箱即用，无限畅用、不限速、无额度限制。
+- **Layer 1 — SearXNG（作者部署）**：作者在 VPS 上部署的元搜索引擎，聚合 70+ 搜索引擎（含百度/Google/Brave），中文英文全覆盖。内置默认端点，开箱即用，无限畅用、不限速、无额度限制。
 - **Layer 2 — Exa（冷备）**：OpenCode 内置的搜索引擎，OMO 插件自动配置，零费用。如触发 rate limit，自动跳到 Layer 3。
 - **Layer 3 — 免费源补强（最终兜底）**：DuckDuckGo / Bing / Brave / Mojeek / Semantic Scholar / GDELT / arXiv + 百度百科 / 知乎 / 199IT / 艾瑞 / 36氪 / 澎湃 / 东方财富 / 微博 / CSDN / 虎嗅 / 豆瓣 等 20+ 源。不依赖任何 API Key，永远可用。
 
 **如果自己注册 Exa 的 API Key：**
 
-免费注册 Exa（https://dashboard.exa.ai/api-keys），每月 1,000 次，不绑卡），设置环境变量：
+免费注册 Exa（https://dashboard.exa.ai/api-keys），每月 1,000 次，不绑卡。设置环境变量：
 ```
 $env:EXA_API_KEY = "你的exa-key"
 ```
