@@ -76,9 +76,9 @@ risk: medium
  6. ══ Task 2 — 数据收集 + 结构化数据池 ══
     → 读取 {PROMPTSDIR}/task2_data_collection.md，替换 {TMPDIR} {TOOLSDIR}，注入 prompt
     → 等待返回 data-pool.json 路径
-    → 读取 {TMPDIR}/task2_manifest.json，提取 source_count + fact_count + fetch_method
+    → 读取 {TMPDIR}/task2_manifest.json，提取 source_count + fact_count + search_engine + fetch_method
     → todowrite 标记完成
-    → 向用户报告进度（"数据已收集，N 个来源，🔧 Scrapling/🌐 webfetch"）
+    → 向用户报告进度（"数据已收集，N 个来源，{search_engine}，{fetch_method}"）
  7. ══ Task 3 — 并行派发章节撰写 ══
     → 读取 {TMPDIR}/outline.json 获取 chapters 数组；读取 {TMPDIR}/data-pool.json
     → **读取 `profiles.json` 获取当前模式的 `max_chars`**，计算 `per_chapter_chars = max_chars ÷ chapters.length`
@@ -110,8 +110,8 @@ risk: medium
     → 从各 manifest 提取数据，按固定模板汇报最终结果（缺失任一字段即标为失败）：
       ```
       📋 大纲已生成：{task1_manifest.title} · {task1_manifest.chapter_count} 章 · {outline.json.depth_mode}
-      📡 数据已收集：{task2_manifest.source_count} 个来源 · {task2_manifest.fact_count} 条事实 · {task2_manifest.fetch_method}
-      📄 报告已生成：{task4_manifest.report_path} · {task4_manifest.line_count} 行 · {task4_manifest.chapter_count} 章 · {task4_manifest.word_count} 字 · ⏱ {totalMin} 分钟 · {task2_manifest.fetch_method}
+      📡 数据已收集：{task2_manifest.source_count} 个来源 · {task2_manifest.fact_count} 条事实 · {task2_manifest.search_engine} · {task2_manifest.fetch_method}
+      📄 报告已生成：{task4_manifest.report_path} · {task4_manifest.line_count} 行 · {task4_manifest.chapter_count} 章 · {task4_manifest.word_count} 字 · ⏱ {totalMin} 分钟 · {task2_manifest.search_engine} · {task2_manifest.fetch_method}
       ```
     → todowrite 全部完成
 

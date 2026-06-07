@@ -115,7 +115,7 @@ def generate_refs(datapool_path: str, numbered: bool = False) -> dict:
     """Generate reference list from data-pool.json with titles.
 
     plain:   - [标题 · 机构 · 年](url)
-    numbered: [1] [标题 · 机构 · 年](url)
+    numbered: (1) [标题 · 机构 · 年](url)
     """
     data = _read_json_handle_bom(datapool_path)
     records = data if isinstance(data, list) else [data]
@@ -139,7 +139,7 @@ def generate_refs(datapool_path: str, numbered: bool = False) -> dict:
     if numbered:
         for i, (inst, yr, title, url) in enumerate(entries, 1):
             label = f"{title} · {inst}" + (f" · {yr}" if yr else "")
-            lines.append(f"[{i}] [{label}]({url})")
+            lines.append(f"({i}) [{label}]({url})")
     else:
         for inst, yr, title, url in entries:
             label = f"{title} · {inst}" + (f" · {yr}" if yr else "")
@@ -160,14 +160,16 @@ def _read_json_handle_bom(path: str):
 
 
 def convert_citations(report_path: str, datapool_path: str, output_path: str = None) -> dict:
-    """Build reference section from data-pool, validate [N] citations in body.
+    """Build reference section from data-pool, validate (N) citations in body.
 
-    Chapter agents write [N] directly (N pre-assigned from data-pool).
+    Chapter agents write [N] directly (N pre-assigned from data-pool),
+    then convert_citations transforms [N] → [(N)](#refN) (clickable).
     This function:
-      1. Builds ref_map from data-pool (first-appearance order of src+yr)
-      2. Scans body for [N] references
-      3. Validates every [N] has a matching ref entry
-      4. Appends/replaces the ## 参考来源 section
+       1. Builds ref_map from data-pool (first-appearance order of src+yr)
+       2. Scans body for [N] references
+       3. Validates every [N] has a matching ref entry
+       4. Transforms [N] → [(N)](#refN) in body for clickability
+       5. Appends/replaces the ## 参考来源 section with (N) format
     """
     with open(report_path, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -175,7 +177,7 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
     # Check: report should NOT contain （机构，年份） patterns
     legacy_cites = re.findall(r'[（(][^）)]+?[，,]\s*\d{4}[）)]', content)
     if legacy_cites:
-        issues = [f"Found {len(legacy_cites)} legacy （机构，年份） citations — chapter agents must use [N] format"]
+        issues = [f"Found {len(legacy_cites)} legacy （机构，年份） citations — chapter agents must use (N) format"]
         return {"passed": False, "issues": issues, "changes": 0}
 
     # Load data-pool and build ref_map from first-appearance order
@@ -208,8 +210,7 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
     for num in sorted(body_refs, key=int):
         num_i = int(num)
         if num_i < 1 or num_i > len(ref_map):
-            issues.append(f"Body references [{
-                num}] which has no data-pool entry")
+            issues.append(f"Body references ({num}) which has no data-pool entry")
 
     # Build reference section
     ref_lines = ["\n\n## 参考来源\n\n"]
@@ -219,9 +220,9 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
         label = label + (f" · {yr}" if yr else "")
         anchor = f'<a id="ref{num}"></a>'
         if url:
-            ref_lines.append(f'{anchor}[{num}] [{label}]({url})')
+            ref_lines.append(f'{anchor}({num}) [{label}]({url})')
         else:
-            ref_lines.append(f'{anchor}[{num}] {label}')
+            ref_lines.append(f'{anchor}({num}) {label}')
 
     ref_text = '\n'.join(ref_lines)
 
@@ -240,9 +241,9 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
         issues.append(
             f"Citations without matching reference: [{', '.join(sorted(missing_in_refs, key=int))}]")
 
-    # Convert [N] → [N](#refN) in body for clickable reference links
+    # Convert [N] → [(N)](#refN) in body for clickable reference links
     BODY_CITE_RE = re.compile(r'(?<!!)\[(\d+)\](?!\()')
-    new_content = BODY_CITE_RE.sub(r'[\1](#ref\1)', new_content)
+    new_content = BODY_CITE_RE.sub(r'[(\1)](#ref\1)', new_content)
 
     # Write output
     output = output_path or report_path

@@ -96,10 +96,10 @@ def main():
     p.add_argument('outline')
     p = sub.add_parser('generate-refs', help='Generate source list with titles')
     p.add_argument('datapool')
-    p.add_argument('--numbered', action='store_true', help='Output as [N] numbered list')
+    p.add_argument('--numbered', action='store_true', help='Output as (N) numbered list')
 
     # convert-citations
-    p = sub.add_parser('convert-citations', help='Convert （机构，年份） to [N] numeric index')
+    p = sub.add_parser('convert-citations', help='Convert [N] → [(N)](#refN) clickable citations')
     p.add_argument('report', help='Path to assembled report')
     p.add_argument('--datapool', required=True, help='Path to data-pool.json')
     p.add_argument('--output', default=None, help='Output path (default: in-place)')
