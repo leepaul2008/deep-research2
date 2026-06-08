@@ -125,10 +125,10 @@ repository: https://github.com/hoolulu/deep-research
     → todowrite 标记完成（每完成一章标记一个子项）
     → 向用户报告进度（使用 $LANG 语言）
      8. ══ Task 4 — 验证 + 装配 + QA（**主 agent 直接执行**） ══
-    → **Step 0 — 清理残留**：删除 reports/ 目录下所有 0 字节文件（前次装配失败的空壳）
+    → **Step 0 — 清理残留**：删除 reports/ 目录下所有 0 字节文件（前次装配失败的空壳）；创建 reports/$LANG/ 子目录（如果不存在）
     → **Step 1 — 批量验证**：`python {TOOLSDIR}/dr_tools.py validate-all-chapters --chapters-dir {TMPDIR}/chapters/ --chapters {chapter_count}`，内部 ThreadPoolExecutor 并行验证所有章节。从输出 JSON 的 `failed_chapters` 中找到失败章节，逐个重新生成（重新派发章节 agent → 重新验证该章）。
     → Step 1 或 Step 2 失败时，**先删除本次已写入的产物**（报告文件、中间文件等），再重新执行对应步骤，避免残留文件干扰下次运行
-    → **Step 2 — 装配**：`python {TOOLSDIR}/dr_tools.py assemble-report --outline {TMPDIR}/outline.json --chapters-dir {TMPDIR}/chapters/ --datapool {TMPDIR}/data-pool.json --mode {depth_mode} --target-year {target_year} --output reports/ --lang $LANG`
+    → **Step 2 — 装配**：`python {TOOLSDIR}/dr_tools.py assemble-report --outline {TMPDIR}/outline.json --chapters-dir {TMPDIR}/chapters/ --datapool {TMPDIR}/data-pool.json --mode {depth_mode} --target-year {target_year} --output reports/$LANG/ --lang $LANG`
     → **Step 3 — 数据受限处理**：读取 {TMPDIR}/task2_manifest.json 的 `data_limited` 字段。如果为 true，在报告标题后插入数据说明声明，**使用 $LANG 语言**。
     → **Step 4 — 引用处理**：`python {TOOLSDIR}/dr_tools.py convert-citations --datapool {TMPDIR}/data-pool.json "$REPORT" --lang $LANG`（从 data-pool 构建参考章节，验证正文 `[N]` 引用均有对应条目）
     → **Step 5 — QA**：`python {TOOLSDIR}/dr_tools.py qa-report "$REPORT" --mode {depth_mode} --target-year {target_year} --lang $LANG`，读取 JSON 输出的 passed + line_count + word_count 字段

@@ -564,6 +564,7 @@ def assemble_report(outline_path: str, chapters_dir: str,
     report_parts.append(f"\n{cfg['report_generated'].format(time=generate_time)}\n")
     full_report = '\n'.join(report_parts)
 
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     tmp = output_path + '.tmp'
     try:
         with open(tmp, 'w', encoding='utf-8', newline='\n') as f:
