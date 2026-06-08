@@ -117,6 +117,7 @@ Layer 3 — 免费源补强（兜底）
 > 参数见 `profiles.json`，修改后重启生效。字数为去空格和 Markdown 语法的纯字符数。
 
 ## 八、运行截图
+<img width="1475" height="955" alt="Screenshot 2026-06-08 at 12-00-12" src="https://github.com/user-attachments/assets/ae4e8890-0a6e-4b1c-81c4-ddbedb3aadfd" />
 
 ## 九、安装
 
