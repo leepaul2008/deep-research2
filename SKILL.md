@@ -60,26 +60,28 @@ repository: https://github.com/hoolulu/deep-research
 ## 1. 主 agent 调度流程
 
 **⚠️ CRITICAL — DO NOT SPEAK BEFORE LANGUAGE DETECTION**
-> Your VERY FIRST action (before anything else) must be: detect language via `detect_lang.py` → set `$LANG`.
-> Output NOTHING to the user until `$LANG` is set — no thinking aloud, no status messages, no Chinese, no English.
-> After language is detected, ALL output must be in `$LANG`. Period. 所有输出必须使用 $LANG 指定的语言。
+> Your VERY FIRST action (before anything else) must be: detect language → set `$LANG`.
+> Output NOTHING to the user until `$LANG` is set — no thinking aloud, no status messages.
+> After language is detected, ALL output must be in `$LANG`. Period.
 >
-> **IMPORTANT: Clean the topic before detection** — the user input may contain framework wrapper text (e.g. "请使用... skill 执行...用户输入如下："). Strip all wrapper text and pass ONLY the clean research topic to detect_lang.py. For example from "请使用...用户输入如下：Quantum computing market outlook -quick" extract only "Quantum computing market outlook".
+> **IMPORTANT: Clean the topic before detection** — the user input may contain framework wrapper text (e.g. "请使用... skill 执行...用户输入如下："). Strip all wrapper text and pass ONLY the clean research topic. For example from "请使用...用户输入如下：Quantum computing market outlook -quick" extract only "Quantum computing market outlook".
 
 ```
 你（主 agent）的完整流程：
 
-══ Step 0 — 语言判定（必须先执行，且判定前不输出任何内容）══
+══ Step 0 — Language Detection (output nothing before detection) ══
 
- → 清理主题：剔除框架包装语（如 "请使用...skill 执行...用户输入如下："），只保留用户的实际调研主题
- → 将清理后的主题写入临时文件：用 `write` 工具将主题内容写入 {TMPDIR}/_topic.txt（UTF-8 无 BOM）
- → 运行检测（跨平台安全模式，不通过命令行参数传递 Unicode）：
-   `python3 {TOOLSDIR}/detect_lang.py --file {TMPDIR}/_topic.txt --output {TMPDIR}/language.txt`
-   （--file 从 UTF-8 文件读取主题，--output 直接写结果文件，完全绕过 shell 编码问题。
-    如果 `python3` 不可用，尝试 `python`；如果都不可用，自动降级使用 sys.executable。）
- → 验证：读取 {TMPDIR}/language.txt 的内容
- → 读取语言代码为变量 `$LANG`
- → **从现在起所有输出必须使用 $LANG 指定的语言**
+ → Clean topic: strip wrapper text, keep only the user's actual research topic
+ → Determine language: analyze the cleaned topic and pick the ISO 639-1 code:
+   zh (Chinese), en (English), ja (Japanese), ko (Korean), ru (Russian),
+   ar (Arabic), hi (Hindi), vi (Vietnamese), th (Thai), tr (Turkish),
+   es (Spanish), fr (French), de (German), pt (Portuguese), it (Italian),
+   nl (Dutch), sv (Swedish), pl (Polish), id (Indonesian)
+   → If unsure, default to "en".
+   → Do NOT output anything during this step.
+ → Write language code: use `write` tool to create {TMPDIR}/language.txt with the ISO code
+ → Set `$LANG` = language code from the step above
+ → **From now on, ALL output must be in $LANG**
 
 ══ 主流程 ══
 
@@ -301,11 +303,11 @@ macOS/Linux 的终端默认 UTF-8，无此问题。
 
 | # | 规则 | 正确做法 | 错误做法 |
 |---|------|---------|---------|
-| 1 | **非 ASCII 文本不进 shell argv/pipe** | 用 `write` 工具写文件 → Python `--file` 读取 | `python3 detect_lang.py "Русский"` ❌ |
+| 1 | **非 ASCII 文本不进 shell argv/pipe** | 用 `write` 工具写文件 → Python `--file` 读取 | Python 脚本 argv 传非 ASCII 文本 ❌ |
 | 2 | **所有文件读写用 UTF-8** | Python 统一 `encoding='utf-8-sig'`（BOM 容错） | 依赖 shell 编码 |
 | 3 | **写文件只用 `write` 工具** | `write` 工具 → UTF-8 无 BOM | PowerShell `Set-Content -Encoding UTF8` ❌（会加 BOM） |
 | 4 | **Python stdout 显式设 UTF-8** | `sys.stdout.reconfigure(encoding='utf-8')` | 依赖系统默认编码 |
-| 5 | **Python 子进程输出用 `--output` 文件** | `detect_lang.py --file input --output result` | shell 重定向 `> result.txt` ❌（CP936 编码输出） |
+| 5 | **Python 子进程输出用 `--output` 文件** | `python script.py --input file --output result` | shell 重定向 `> result.txt` ❌（CP936 编码输出） |
 
 ### 一劳永逸方案：全链路编码安全架构
 
@@ -321,7 +323,7 @@ macOS/Linux 的终端默认 UTF-8，无此问题。
  ┌─ Python 处理 ───────────────────────────────┐
  │ 所有脚本入口设 `stdout.reconfigure('utf-8')` │ ← 输出安全
  │ 所有文件读用 `encoding='utf-8-sig'`         │ ← 输入安全
- │ 检测语言用 `--file topic.txt --output lang.txt`│ ← 完全绕过 shell
+  │ Python 脚本统一用 `--input`/`--output` 参数   │ ← 完全绕过 shell
  └──────────────┬──────────────────────────────┘
                 ▼
  ┌─ 最终输出 ──────────────────────────────────┐
@@ -333,7 +335,6 @@ macOS/Linux 的终端默认 UTF-8，无此问题。
 
 | 文件 | 防护措施 | 状态 |
 |------|---------|:----:|
-| `detect_lang.py` | `--file` + `--output` 参数 + `stdout.reconfigure` | ✅ |
 | `dr_tools.py` | 入口 `stdout.reconfigure` + 所有读操作用 `utf-8-sig` | ✅ |
 | `dr_check.py` | 所有读操作用 `utf-8-sig` | ✅ |
 | `dr_gen.py` | 所有读操作用 `utf-8-sig`，写操作用 `utf-8`（无 BOM） | ✅ |
