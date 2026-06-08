@@ -455,10 +455,16 @@ def assemble_report(outline_path: str, chapters_dir: str,
     cfg = get_lang_config(lang)
     now = datetime.datetime.now()
 
+    # Sanitize title for filesystem: replace Windows-invalid chars with '-'
+    # Invalid on Windows: < > : " / \ | ? *
+    safe_title = re.sub(r'[<>:"/\\|?*]', '-', title)
+    # Also trim trailing dots/spaces (Windows issue)
+    safe_title = safe_title.rstrip('. ')
+
     if not output_path:
-        output_path = f"reports/{title}-{now.strftime('%Y%m%d-%H%M%S')}.md"
+        output_path = f"reports/{safe_title}-{now.strftime('%Y%m%d-%H%M%S')}.md"
     elif os.path.isdir(output_path) or not output_path.endswith('.md'):
-        base = os.path.join(output_path, f"{title}-{now.strftime('%Y%m%d-%H%M%S')}.md")
+        base = os.path.join(output_path, f"{safe_title}-{now.strftime('%Y%m%d-%H%M%S')}.md")
         output_path = base
     chapters = outline.get('chapters', [])
     depth_mode = outline.get('depth_mode', mode)

@@ -124,7 +124,8 @@ repository: https://github.com/hoolulu/deep-research
     → **章节 agent 不做任何工具调用**（不跑 prepare-chapter、validate、manifest），只写文件
     → todowrite 标记完成（每完成一章标记一个子项）
     → 向用户报告进度（使用 $LANG 语言）
-  8. ══ Task 4 — 验证 + 装配 + QA（**主 agent 直接执行**） ══
+     8. ══ Task 4 — 验证 + 装配 + QA（**主 agent 直接执行**） ══
+    → **Step 0 — 清理残留**：删除 reports/ 目录下所有 0 字节文件（前次装配失败的空壳）
     → **Step 1 — 批量验证**：`python {TOOLSDIR}/dr_tools.py validate-all-chapters --chapters-dir {TMPDIR}/chapters/ --chapters {chapter_count}`，内部 ThreadPoolExecutor 并行验证所有章节。从输出 JSON 的 `failed_chapters` 中找到失败章节，逐个重新生成（重新派发章节 agent → 重新验证该章）。
     → Step 1 或 Step 2 失败时，**先删除本次已写入的产物**（报告文件、中间文件等），再重新执行对应步骤，避免残留文件干扰下次运行
     → **Step 2 — 装配**：`python {TOOLSDIR}/dr_tools.py assemble-report --outline {TMPDIR}/outline.json --chapters-dir {TMPDIR}/chapters/ --datapool {TMPDIR}/data-pool.json --mode {depth_mode} --target-year {target_year} --output reports/ --lang $LANG`
