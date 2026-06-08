@@ -88,3 +88,8 @@
 4. **每章重置**：子节编号在每章内从 1.1 重新开始，不跨章连续
 
 来源：CY/T 35-2001《科技文献的章节编号方法》([xxmu.edu.cn](https://www.xxmu.edu.cn/qks/CY_T35-2001.pdf)), GB/T 1.1-2020《标准化工作导则》([openstd.samr.gov.cn](https://openstd.samr.gov.cn/bzgk/std/newGbInfo?hcno=C4BFD981E993C417EF475F2A19B681F1)), 公文层次序号规范 ([book118.com](https://m.book118.com/html/2024/1014/7012141001006162.shtm))
+
+---
+```
+deep-research by hoolulu · github.com/hoolulu/deep-research
+```

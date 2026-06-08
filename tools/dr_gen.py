@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Deep Research Tools — Generate subcommands (write, assemble, skeleton, refs, etc.)
-"""
 import json
 import locale
 import os
@@ -9,6 +6,7 @@ import re
 import sys
 
 from dr_check import check_encoding, load_profile
+from lang_config import get_lang_config, CHINESE_NUMERALS
 
 
 # ── Source Extraction ─────────────────────────────────────────────────────
@@ -17,7 +15,6 @@ SOURCE_PATTERN = re.compile(r'[（(]([^）)]+?)[，,]\s*(\d{4})[）)]')
 
 
 def extract_sources(filepath: str) -> dict:
-    """Extract unique (机构，年份) patterns from report text."""
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     matches = SOURCE_PATTERN.findall(content)
@@ -38,57 +35,63 @@ def extract_sources(filepath: str) -> dict:
 
 # ── TOC Generation ─────────────────────────────────────────────────────────
 
-CHINESE_NUMERALS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
-                    '十一', '十二', '十三', '十四', '十五']
-
 
 def _github_anchor(text: str) -> str:
-    """Generate GitHub-compatible anchor from heading text.
-    
-    GitHub strips all Chinese/ASCII punctuation, keeps CJK chars and digits.
-    """
     punct = r'''，。、：；？！""''（）【】《》—…·,:;.!?()[]{}"'<>  '''
     table = str.maketrans('', '', punct)
     return text.translate(table).replace(' ', '-').lower()
 
 
 def generate_toc(outline_path: str) -> dict:
-    """Generate single-level chapter TOC from outline.json."""
     with open(outline_path, 'r', encoding='utf-8') as f:
         outline = json.load(f)
     chapters = outline.get('chapters', [])
+    lang = outline.get('language', 'zh')
+    cfg = get_lang_config(lang)
     lines = []
     for i, ch in enumerate(chapters):
-        prefix = CHINESE_NUMERALS[i] if i < len(CHINESE_NUMERALS) else str(i + 1)
+        prefix = cfg['toc_prefix'](i + 1)
         title = ch.get('title', '')
-        label = f"{prefix}、{title}"
+        label = f"{prefix} {title}" if lang != 'zh' else f"{prefix}{title}"
         anchor = _github_anchor(label)
         lines.append(f"- [{label}](#{anchor})")
     return {
         "chapter_count": len(chapters),
         "toc_lines": lines,
         "toc_text": '\n'.join(lines),
-        "prefixes": [CHINESE_NUMERALS[i] if i < len(CHINESE_NUMERALS) else str(i + 1)
-                     for i in range(len(chapters))],
     }
 
 
 # ── Metadata Block Generation ─────────────────────────────────────────────
 
+
 def generate_metadata(word_count: int, reading_time: int, data_until: str,
                        generate_time: str, depth_mode: str,
                        source_count: int, top_sources: list,
-                       skill_version: str = "") -> dict:
-    """Generate the two-line metadata block for report header."""
-    version_str = f" · Skill版本：{skill_version}" if skill_version else ""
+                       skill_version: str = "",
+                       lang: str = "zh") -> dict:
+    cfg = get_lang_config(lang)
+    fields = cfg['metadata_fields']
+    s = cfg['sep']
+    fs = cfg['field_sep']
+    version_str = f"{s}{fields[5]}{fs}{skill_version}" if skill_version else ""
     line1 = (
-        f"> **元数据**：总字数：{word_count} 字 · 阅读时间：{reading_time} 分钟"
-        f" · 数据截至：{data_until} · 生成时间：{generate_time}"
-        f" · 调研模式：{depth_mode}{version_str}"
+        f"> {cfg['metadata_label']}"
+        f"{fields[0]}{fs}{word_count}"
+        f"{s}{fields[1]}{fs}{reading_time} {cfg['minute_unit']}"
+        f"{s}{fields[2]}{fs}{data_until}"
+        f"{s}{fields[3]}{fs}{generate_time}"
+        f"{s}{fields[4]}{fs}{depth_mode}{version_str}"
     )
     sorted_sources = sorted(top_sources)[:8]
-    source_str = "、".join(sorted_sources)
-    line2 = f"> **参考来源**：{source_str} 等 · 共引用 {source_count} 个来源"
+    src_fmt = cfg['refs_count_format']
+    count_text = src_fmt(source_count) if callable(src_fmt) else src_fmt.format(count=source_count)
+    if lang == 'zh':
+        source_str = "、".join(sorted_sources)
+        line2 = f"> {cfg['references_label']}{source_str} 等 · {count_text}"
+    else:
+        source_str = ", ".join(sorted_sources)
+        line2 = f"> {cfg['references_label']}{source_str} et al. · {count_text}"
     return {
         "metadata_line": line1,
         "source_line": line2,
@@ -98,8 +101,8 @@ def generate_metadata(word_count: int, reading_time: int, data_until: str,
 
 # ── Chapter Mapping ───────────────────────────────────────────────────────
 
+
 def map_chapters(outline_path: str) -> dict:
-    """Map each chapter to its sub_questions for chapter agent dispatch."""
     with open(outline_path, 'r', encoding='utf-8') as f:
         outline = json.load(f)
     chapters = outline.get('chapters', [])
@@ -121,14 +124,11 @@ def map_chapters(outline_path: str) -> dict:
 
 # ── Hyperlinked Reference List ────────────────────────────────────────────
 
-def generate_refs(datapool_path: str, numbered: bool = False) -> dict:
-    """Generate reference list from data-pool.json with titles.
 
-    plain:   - [标题 · 机构 · 年](url)
-    numbered: (1) [标题 · 机构 · 年](url)
-    """
+def generate_refs(datapool_path: str, numbered: bool = False, lang: str = "zh") -> dict:
     data = _read_json_handle_bom(datapool_path)
     records = data if isinstance(data, list) else [data]
+    cfg = get_lang_config(lang)
     seen_keys = set()
     entries = []
     for rec in records:
@@ -145,7 +145,9 @@ def generate_refs(datapool_path: str, numbered: bool = False) -> dict:
                 entries.append((inst, yr, title or inst, url))
     entries.sort(key=lambda x: (x[0].lower(), x[2]))
 
-    lines = [f"## 参考来源\n", f"共引用 {len(entries)} 个来源\n"]
+    src_fmt = cfg['refs_count_format']
+    count_text = src_fmt(len(entries)) if callable(src_fmt) else src_fmt.format(count=len(entries))
+    lines = [f"{cfg['refs_prefix']}\n", f"{count_text}\n"]
     if numbered:
         for i, (inst, yr, title, url) in enumerate(entries, 1):
             label = f"{title} · {inst}" + (f" · {yr}" if yr else "")
@@ -165,20 +167,16 @@ CITATION_RE = re.compile(r'[（(]([^）)]+?)[，,]\s*(\d{4})[）)]')
 
 _UTF8_SIG = 'utf-8-sig'
 
+
 def _read_json_handle_bom(path: str):
-    """Read JSON file, auto-handling UTF-8 BOM."""
     with open(path, 'r', encoding=_UTF8_SIG) as f:
         return json.load(f)
 
 
 # ── Search Engine Detection ─────────────────────────────────────────────────
 
-def detect_engine() -> dict:
-    """Detect available search engine. Tests SearXNG via HTTP GET.
 
-    Exa is an OpenCode-internal tool (not a Python API), so it must be
-    tested by the LLM sub-agent. This script only covers SearXNG.
-    """
+def detect_engine() -> dict:
     import json as _json
     import urllib.request as _req
     import urllib.error as _err
@@ -199,20 +197,11 @@ def detect_engine() -> dict:
     return {"engine": "none", "available": False}
 
 
-def convert_citations(report_path: str, datapool_path: str, output_path: str = None) -> dict:
-    """Build reference section from data-pool, validate (N) citations in body.
-
-    Chapter agents write [N] directly (N pre-assigned from data-pool),
-    then convert_citations transforms [N] → [(N)](#refN) (clickable).
-    This function:
-       1. Builds ref_map from data-pool (first-appearance order of src+yr)
-       2. Scans body for [N] references
-       3. Validates every [N] has a matching ref entry
-       4. Transforms [N] → [(N)](#refN) in body for clickability
-       5. Appends/replaces the ## 参考来源 section with (N) format
-    """
+def convert_citations(report_path: str, datapool_path: str, output_path: str = None, lang: str = "zh") -> dict:
     with open(report_path, 'r', encoding='utf-8') as f:
         content = f.read()
+
+    cfg = get_lang_config(lang)
 
     # Check: report should NOT contain （机构，年份） patterns
     legacy_cites = re.findall(r'[（(][^）)]+?[，,]\s*\d{4}[）)]', content)
@@ -225,8 +214,8 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
     records = data if isinstance(data, list) else [data]
 
     seen = set()
-    ordered_refs = []  # (inst, yr) in first-appearance order
-    pool_map = {}  # (inst, yr) → (title, url)
+    ordered_refs = []
+    pool_map = {}
     for rec in records:
         for fact in rec.get('facts') or []:
             inst = fact.get('src', '').strip()
@@ -242,8 +231,9 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
 
     ref_map = {pair: i + 1 for i, pair in enumerate(ordered_refs)}
 
-    # Scan body for [N] patterns (chapter agents write these directly)
-    body = content.split('## 参考来源')[0] if '## 参考来源' in content else content
+    # Scan body for [N] patterns
+    split_marker = cfg['refs_prefix']
+    body = content.split(split_marker)[0] if split_marker in content else content
     body_refs = set(re.findall(r'(?<!!)\[(\d+)\](?!\()', body))
 
     issues = []
@@ -252,7 +242,7 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
         if num_i < 1 or num_i > len(ref_map):
             issues.append(f"Body references ({num}) which has no data-pool entry")
 
-    # Build reference section (blank line between each entry for GFM rendering)
+    # Build reference section
     entry_lines = []
     for (inst, yr), num in sorted(ref_map.items(), key=lambda x: x[1]):
         title, url = pool_map.get((inst, yr), (inst, ''))
@@ -264,10 +254,10 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
         else:
             entry_lines.append(f'{anchor}({num}) {label}')
 
-    ref_text = '\n\n## 参考来源\n\n\n' + '\n\n'.join(entry_lines)
+    ref_text = f'\n\n{cfg["refs_prefix"]}\n\n\n' + '\n\n'.join(entry_lines)
 
-    # Insert/replace ## 参考来源 section
-    old_section = re.search(r'## 参考来源.*?(?=\n## |\Z)', content, re.DOTALL)
+    # Insert/replace refs section
+    old_section = re.search(rf'{cfg["refs_prefix"]}.*?(?=\n## |\Z)', content, re.DOTALL)
     if old_section:
         new_content = content[:old_section.start()] + ref_text + content[old_section.end():]
     else:
@@ -281,7 +271,7 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
         issues.append(
             f"Citations without matching reference: [{', '.join(sorted(missing_in_refs, key=int))}]")
 
-    # Convert [N] → [(N)](#refN) in body for clickable reference links
+    # Convert [N] → [(N)](#refN)
     BODY_CITE_RE = re.compile(r'(?<!!)\[(\d+)\](?!\()')
     new_content = BODY_CITE_RE.sub(r'[(\1)](#ref\1)', new_content)
 
@@ -304,35 +294,26 @@ def convert_citations(report_path: str, datapool_path: str, output_path: str = N
 
 # ── Encoding-safe stdin reader (cross-platform) ─────────────────────────────
 
-def _read_stdin() -> str:
-    """Read stdin with auto-detected encoding.
 
-    Cross-platform strategy:
-      1. Try UTF-8 (macOS/Linux/WSL, PowerShell 7+, modern terminals)
-      2. Fallback to locale encoding (PowerShell 5.1 on Windows, e.g. cp936)
-      3. Last resort: UTF-8 with replacement characters
-    """
+def _read_stdin() -> str:
     raw = sys.stdin.buffer.read()
     if not raw:
         return ''
-    # 1. UTF-8 (modern terminals, Unix, PS7+)
     try:
         return raw.decode('utf-8')
     except UnicodeDecodeError:
         pass
-    # 2. Locale encoding (PS5.1 on Windows → cp936, etc.)
     try:
         return raw.decode(locale.getpreferredencoding())
     except (UnicodeDecodeError, LookupError):
         pass
-    # 3. Last resort
     return raw.decode('utf-8', errors='replace')
 
 
 # ── JSON Write (atomic, encoding-safe) ─────────────────────────────────────
 
+
 def write_json(filepath: str) -> dict:
-    """Read JSON from stdin, validate, write UTF-8 no BOM atomically."""
     raw = _read_stdin()
     if not raw.strip():
         return {"passed": False, "issues": ["Empty input from stdin"]}
@@ -353,8 +334,8 @@ def write_json(filepath: str) -> dict:
 
 # ── Markdown Write (encoding-safe, Mojibake-free) ─────────────────────────
 
+
 def write_md(filepath: str) -> dict:
-    """Read markdown from stdin, write UTF-8 no BOM, check Mojibake after."""
     raw = _read_stdin()
     if not raw.strip():
         return {"passed": False, "issues": ["Empty input from stdin"]}
@@ -373,15 +354,18 @@ def write_md(filepath: str) -> dict:
 
 # ── Prepare Chapter Skeleton ──────────────────────────────────────────────
 
+
 def prepare_chapter(outline_path: str, datapool_path: str,
                     chapter_num: int, total_chapters: int, mode: str) -> dict:
-    """Generate chapter skeleton with pre-extracted facts from data-pool."""
     with open(outline_path, 'r', encoding='utf-8') as f:
         outline = json.load(f)
     with open(datapool_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     chapters = outline.get('chapters', [])
+    lang = outline.get('language', 'zh')
+    cfg = get_lang_config(lang)
+
     if chapter_num < 1 or chapter_num > len(chapters):
         return {"passed": False, "issues": [f"Chapter {chapter_num} out of range (1-{len(chapters)})"]}
 
@@ -390,19 +374,16 @@ def prepare_chapter(outline_path: str, datapool_path: str,
     sections = ch.get('sections', [])
     sub_questions = ch.get('sub_questions', [])
 
-    # Word limit estimate
     prof = load_profile(mode)
     total_limit = prof.get('max_chars', 3000)
     per_chapter_target = total_limit // max(total_chapters, 1)
 
-    # Match data-pool records to this chapter's sub_questions
     pool_records = data if isinstance(data, list) else [data]
     sq_questions = [sq.get('question', '') for sq in sub_questions]
 
     relevant_facts = []
     for rec in pool_records:
         rec_q = rec.get('question', '')
-        # Match if any keyword from sub_questions appears in record question
         match_score = sum(1 for sq in sq_questions if any(
             kw.lower() in rec_q.lower() for kw in sq.split() if len(kw) > 2
         ))
@@ -418,21 +399,19 @@ def prepare_chapter(outline_path: str, datapool_path: str,
                     "context": fact.get('ctx', ''),
                 })
 
-    # Sort facts: prioritize by match score
     relevant_facts.sort(key=lambda x: x.get('year', ''), reverse=True)
 
-    # Build skeleton markdown
     lines = []
-    prefix = CHINESE_NUMERALS[chapter_num - 1] if chapter_num - 1 < len(CHINESE_NUMERALS) else str(chapter_num)
-    lines.append(f"# {prefix}、{title}")
-    lines.append(f"\n> 本章核心判断。\n")
+    prefix_str = cfg['chapter_heading'](chapter_num, title)
+    lines.append(f"# {title}")
+    lines.append(f"\n> " + ("Core judgment for this chapter." if lang != 'zh' else "本章核心判断。") + "\n")
     per_section_est = per_chapter_target // max(len(sections), 1)
-    lines.append(f"> **字数参考**：本章目标 ≈ {per_chapter_target} 字（每节 ~{per_section_est} 字）| sections: {len(sections)} | 预匹配事实: {len(relevant_facts)} 条\n")
+    char_note = "chars" if lang != 'zh' else "字"
+    lines.append(f"> **{'Word target' if lang != 'zh' else '字数参考'}**：{'chapter target' if lang != 'zh' else '本章目标'} ≈ {per_chapter_target} {char_note}（{'per section' if lang != 'zh' else '每节'} ~{per_section_est} {char_note}）| sections: {len(sections)} | {'pre-matched facts' if lang != 'zh' else '预匹配事实'}: {len(relevant_facts)}\n")
 
     for idx, section in enumerate(sections):
         sec_num = idx + 1
         lines.append(f"### {chapter_num}.{sec_num} {section}\n")
-        # Add pre-matched facts for this section
         section_facts = [f for f in relevant_facts if section in f.get('context', '') or sec_num <= 2]
         if not section_facts:
             section_facts = relevant_facts[:2] if relevant_facts else []
@@ -441,7 +420,7 @@ def prepare_chapter(outline_path: str, datapool_path: str,
         for fact in section_facts[:3]:
             val_str = f"{fact['value']}{fact['unit']}" if fact['value'] is not None else fact['context']
             lines.append(f"- {fact['metric']}: {val_str}（{fact['source']}，{fact['year']}）")
-        lines.append("")  # blank line for LLM to fill
+        lines.append("")
 
     skeleton = '\n'.join(lines)
     return {
@@ -455,26 +434,16 @@ def prepare_chapter(outline_path: str, datapool_path: str,
 
 # ── Assemble Final Report ─────────────────────────────────────────────────
 
-DISCLAIMER = (
-    "本报告基于公开数据整理，不构成投资建议。"
-    "部分存疑数据已标明，请自行谨慎判断。"
-)
-
 
 def assemble_report(outline_path: str, chapters_dir: str,
                     datapool_path: str,
                     mode: str, target_year: int,
                     wordcount_path: str = None,
                     output_path: str = None) -> dict:
-    """Assemble final report from chapter files, outline, and metadata.
-    
-    wordcount_path is no longer used — word count is computed from the
-    assembled report text at the end. Kept as optional param for backward compat.
-    """
     from dr_check import word_count as wc_func
+    import datetime
     issues = []
 
-    # 1. Read outline
     try:
         with open(outline_path, 'r', encoding='utf-8') as f:
             outline = json.load(f)
@@ -482,18 +451,18 @@ def assemble_report(outline_path: str, chapters_dir: str,
         return {"passed": False, "issues": [f"Failed to read outline: {e}"]}
 
     title = outline.get('title', '报告')
-    from datetime import datetime
-    now = datetime.now()
-    # Auto-generate output path if not provided or is a directory
+    lang = outline.get('language', 'zh')
+    cfg = get_lang_config(lang)
+    now = datetime.datetime.now()
+
     if not output_path:
-        output_path = f"案例报告/{title}-{now.strftime('%Y%m%d-%H%M%S')}.md"
+        output_path = f"reports/{title}-{now.strftime('%Y%m%d-%H%M%S')}.md"
     elif os.path.isdir(output_path) or not output_path.endswith('.md'):
         base = os.path.join(output_path, f"{title}-{now.strftime('%Y%m%d-%H%M%S')}.md")
         output_path = base
     chapters = outline.get('chapters', [])
     depth_mode = outline.get('depth_mode', mode)
 
-    # 3. Collect and order chapter files
     chapter_files = []
     for i in range(1, len(chapters) + 1):
         path = os.path.join(chapters_dir, f"chapter-{i}.md")
@@ -502,39 +471,29 @@ def assemble_report(outline_path: str, chapters_dir: str,
         else:
             issues.append(f"Missing chapter file: chapter-{i}.md")
 
-    # 4. Generate TOC
     toc_result = generate_toc(outline_path)
     toc_text = toc_result['toc_text']
 
-    # 5. Read chapter contents
     chapter_texts = []
     for num, fpath in sorted(chapter_files):
         with open(fpath, 'r', encoding='utf-8') as f:
             content = f.read().strip()
-        # Strip any H1/H2 heading the agent might have written (agents are told not to)
         content = re.sub(r'^#{1,2} .+?\n+', '', content, count=1)
-        # Prepend correct H2 heading from outline
-        prefix = CHINESE_NUMERALS[num - 1] if num - 1 < len(CHINESE_NUMERALS) else str(num)
-        ch_title = chapters[num - 1].get('title', '未知')
-        heading = f'## {prefix}、{ch_title}'
+        heading = cfg['chapter_heading'](num, chapters[num - 1].get('title', ''))
         chapter_texts.append(f'{heading}\n\n{content}')
 
-    # 6. Build report body first (without metadata — word count unknown yet)
-    data_until = f"{target_year}年"
-    from datetime import datetime
-    generate_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    data_until = f"{target_year}" if lang != 'zh' else f"{target_year}年"
+    generate_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    # Read data-pool for source info
     try:
-        refs = generate_refs(datapool_path)
+        refs = generate_refs(datapool_path, lang=lang)
         total_sources = refs['source_count']
         ref_text = refs['ref_text']
     except Exception as e:
         total_sources = 0
-        ref_text = "## 参考来源\n\n无来源数据\n"
+        ref_text = f"{cfg['refs_prefix']}\n\n{'No source data' if lang != 'zh' else '无来源数据'}\n"
         issues.append(f"Source extraction failed: {e}")
 
-    # Top sources from data-pool
     try:
         with open(datapool_path, 'r', encoding='utf-8') as f:
             dp_data = json.load(f)
@@ -549,7 +508,6 @@ def assemble_report(outline_path: str, chapters_dir: str,
     except Exception:
         top_sources = []
 
-    # Read skill version from VERSION file
     script_dir = os.path.dirname(os.path.abspath(__file__))
     version_path = os.path.join(script_dir, '..', 'VERSION')
     try:
@@ -558,51 +516,48 @@ def assemble_report(outline_path: str, chapters_dir: str,
     except Exception:
         version = ""
 
-    # Assemble temporary report with placeholder word count to compute actual word count
     temp_meta = generate_metadata(
         word_count=0, reading_time=1,
         data_until=data_until, generate_time=generate_time,
         depth_mode=depth_mode, source_count=total_sources,
-        top_sources=top_sources, skill_version=version,
+        top_sources=top_sources, skill_version=version, lang=lang,
     )
+    toc_heading = cfg['toc_heading']
     temp_parts = [
         f"# {title}\n",
         f"{temp_meta['full_block']}\n",
-        "## 目录\n", toc_text, "\n",
+        toc_heading, "\n", toc_text, "\n",
     ]
     temp_parts.append('\n\n'.join(chapter_texts))
     temp_parts.append("\n\n---\n\n")
     temp_parts.append(ref_text)
-    temp_parts.append(f"\n\n## 免责声明\n\n{DISCLAIMER}\n")
-    temp_parts.append(f"\n*报告生成时间：{generate_time}*\n")
+    temp_parts.append(f"\n\n{cfg['disclaimer_title']}\n\n{cfg['disclaimer_text']}\n")
+    temp_parts.append(f"\n{cfg['report_generated'].format(time=generate_time)}\n")
     full_report = '\n'.join(temp_parts)
 
-    # 7. Compute word count from assembled report
     total_wc = wc_func(output_path) if os.path.exists(output_path) else 0
     if total_wc == 0:
         total_wc = len(re.sub(r'\s+', '', full_report))
     reading_time = max(1, round(total_wc / 600))
 
-    # 8. Re-generate metadata with real word count, then assemble final
     meta = generate_metadata(
         word_count=total_wc, reading_time=reading_time,
         data_until=data_until, generate_time=generate_time,
         depth_mode=depth_mode, source_count=total_sources,
-        top_sources=top_sources, skill_version=version,
+        top_sources=top_sources, skill_version=version, lang=lang,
     )
     report_parts = [
         f"# {title}\n",
         f"{meta['full_block']}\n",
-        "## 目录\n", toc_text, "\n",
+        toc_heading, "\n", toc_text, "\n",
     ]
     report_parts.append('\n\n'.join(chapter_texts))
     report_parts.append("\n\n---\n\n")
     report_parts.append(ref_text)
-    report_parts.append(f"\n\n## 免责声明\n\n{DISCLAIMER}\n")
-    report_parts.append(f"\n*报告生成时间：{generate_time}*\n")
+    report_parts.append(f"\n\n{cfg['disclaimer_title']}\n\n{cfg['disclaimer_text']}\n")
+    report_parts.append(f"\n{cfg['report_generated'].format(time=generate_time)}\n")
     full_report = '\n'.join(report_parts)
 
-    # 9. Write via write_md logic (UTF-8 no BOM)
     tmp = output_path + '.tmp'
     try:
         with open(tmp, 'w', encoding='utf-8', newline='\n') as f:
@@ -611,12 +566,10 @@ def assemble_report(outline_path: str, chapters_dir: str,
     except Exception as e:
         return {"passed": False, "issues": [f"Write failed: {e}"]}
 
-    # 10. Verify writing
     enc_check = check_encoding(output_path)
     if not enc_check['passed']:
         issues.append(f"Encoding issue in assembled report: {enc_check['issues']}")
 
-    # Count lines
     line_count = full_report.count('\n') + 1
 
     return {

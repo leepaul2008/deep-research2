@@ -1,5 +1,5 @@
 ---
-description: 深度调研任何主题，生成对标券商/研究机构标准的专业报告
+description: Deep research on any topic — generates professional-grade reports comparable to investment bank / research institution standards
 ---
 
 <command-instruction>
@@ -10,11 +10,16 @@ skill(name="deep-research")
 ```
 
 Parse `$ARGUMENTS` to determine the research topic and optional mode flags:
-- `/research 主题` → standard 模式
-- `/research 主题 -quick` → quick 模式
-- `/research 主题 -deep` → deep 模式
+- `/research <topic>` → standard mode
+- `/research <topic> -quick` → quick mode
+- `/research <topic> -deep` → deep mode
 </command-instruction>
 
 <user-request>
 $ARGUMENTS
 </user-request>
+
+---
+```
+deep-research by hoolulu · github.com/hoolulu/deep-research
+```

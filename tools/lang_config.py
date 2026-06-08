@@ -1,0 +1,538 @@
+#!/usr/bin/env python3
+"""
+Language configuration table for Deep Research reports.
+
+Every language needs: metadata fields (×6), labels, heading format,
+disclaimer text, and QA check patterns. ~15 lines per language.
+
+`get_lang_config(lang)` — returns config dict, falls back to English.
+"""
+
+# Chinese numerals (kept here for zh config)
+CHINESE_NUMERALS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十',
+                    '十一', '十二', '十三', '十四', '十五']
+
+LANG_CONFIG = {
+    # ── 中文 ─────────────────────────────────────────────────────────────
+    "zh": {
+        "metadata_fields": ["总字数", "阅读时间", "数据截至", "生成时间", "调研模式", "Skill版本"],
+        "metadata_label": "**元数据**：",
+        "references_label": "**参考来源**：",
+        "sep": " · ",
+        "field_sep": "：",
+        "minute_unit": "分钟",
+        "chapter_heading": lambda n, title: f"## {CHINESE_NUMERALS[n-1]}、{title}",
+        "toc_prefix": lambda n: CHINESE_NUMERALS[n-1] + "、",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix}{title}](#{anchor})",
+        "refs_prefix": "## 参考来源",
+        "refs_count_format": "共引用 {count} 个来源",
+
+        "toc_heading": "## 目录",
+        "disclaimer_title": "## 免责声明",
+        "disclaimer_text": "本报告基于公开数据整理，不构成投资建议。部分存疑数据已标明，请自行谨慎判断。",
+        "report_generated": "*报告生成时间：{time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*元数据\*\*：',
+            "references_pattern": r'> \*\*参考来源\*\*',
+            "tail_refs": "## 参考来源",
+            "tail_disclaimer": "## 免责声明",
+            "ch_number_pattern": r'^## ([' + ''.join(CHINESE_NUMERALS) + r']+)、',
+            "ch_has_number_check": False,  # zh: ## should NOT contain arabic numeral
+        }
+    },
+    # ── 常见拉丁字母语言（en/es/fr/de/pt/it/nl/sv）──
+    # 共享相同的编号体系（1. 2. 3. / ## 1. Title），不同元数据字段
+    "en": {
+        "metadata_fields": ["Word Count", "Reading Time", "Data Until", "Generated", "Mode", "Skill Version"],
+        "metadata_label": "**Metadata**:",
+        "references_label": "**References**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## References",
+        "refs_count_format": "Total {count} sources",
+
+        "toc_heading": "## Table of Contents",
+        "disclaimer_title": "## Disclaimer",
+        "disclaimer_text": "This report is compiled from publicly available data and does not constitute investment advice. Some data points are marked as questionable — please exercise your own judgment.",
+        "report_generated": "*Report generated: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadata\*\*:',
+            "references_pattern": r'> \*\*References\*\*',
+            "tail_refs": "## References",
+            "tail_disclaimer": "## Disclaimer",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,  # non-zh: ## SHOULD have numeral
+        }
+    },
+    # ── 日语 ─────────────────────────────────────────────────────────────
+    "ja": {
+        "metadata_fields": ["文字数", "読了時間", "データ期限", "生成時間", "モード", "Skillバージョン"],
+        "metadata_label": "**メタデータ**:",
+        "references_label": "**参照元**:",
+        "sep": " · ",
+        "field_sep": "：",
+        "minute_unit": "分",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## 参照元",
+        "refs_count_format": "合計 {count} 件の出典",
+
+        "toc_heading": "## 目次",
+        "disclaimer_title": "## 免責事項",
+        "disclaimer_text": "本レポートは公開データに基づき作成されたものであり、投資助言を構成するものではありません。疑わしいデータには注釈を付しています。",
+        "report_generated": "*生成時間：{time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*メタデータ\*\*:',
+            "references_pattern": r'> \*\*参照元\*\*',
+            "tail_refs": "## 参照元",
+            "tail_disclaimer": "## 免責事項",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 韩语 ─────────────────────────────────────────────────────────────
+    "ko": {
+        "metadata_fields": ["글자 수", "읽는 시간", "데이터 기준일", "생성 시간", "모드", "Skill 버전"],
+        "metadata_label": "**메타데이터**:",
+        "references_label": "**참고 자료**:",
+        "sep": " · ",
+        "field_sep": "：",
+        "minute_unit": "분",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## 참고 자료",
+        "refs_count_format": "총 {count}개 출처",
+
+        "toc_heading": "## 목차",
+        "disclaimer_title": "## 면책 조항",
+        "disclaimer_text": "본 보고서는 공개 데이터를 기반으로 작성되었으며 투자 조언을 구성하지 않습니다. 의심스러운 데이터는 별도 표기되었습니다.",
+        "report_generated": "*생성 시간：{time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*메타데이터\*\*:',
+            "references_pattern": r'> \*\*참고 자료\*\*',
+            "tail_refs": "## 참고 자료",
+            "tail_disclaimer": "## 면책 조항",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 西班牙语 ──────────────────────────────────────────────────────────
+    "es": {
+        "metadata_fields": ["Recuento de palabras", "Tiempo de lectura", "Datos hasta", "Generado", "Modo", "Versión Skill"],
+        "metadata_label": "**Metadatos**:",
+        "references_label": "**Referencias**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Referencias",
+        "refs_count_format": "Total {count} fuentes",
+
+        "toc_heading": "## Índice",
+        "disclaimer_title": "## Descargo de responsabilidad",
+        "disclaimer_text": "Este informe se elabora a partir de datos públicos y no constituye asesoramiento de inversión. Algunos datos dudosos están señalados.",
+        "report_generated": "*Informe generado: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadatos\*\*:',
+            "references_pattern": r'> \*\*Referencias\*\*',
+            "tail_refs": "## Referencias",
+            "tail_disclaimer": "## Descargo de responsabilidad",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 法语 ─────────────────────────────────────────────────────────────
+    "fr": {
+        "metadata_fields": ["Nombre de mots", "Temps de lecture", "Données jusqu'au", "Généré le", "Mode", "Version Skill"],
+        "metadata_label": "**Métadonnées**:",
+        "references_label": "**Références**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Références",
+        "refs_count_format": "Total {count} sources",
+
+        "toc_heading": "## Table des matières",
+        "disclaimer_title": "## Avertissement",
+        "disclaimer_text": "Ce rapport est basé sur des données publiques et ne constitue pas un conseil en investissement. Certaines données douteuses sont signalées.",
+        "report_generated": "*Rapport généré : {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Métadonnées\*\*:',
+            "references_pattern": r'> \*\*Références\*\*',
+            "tail_refs": "## Références",
+            "tail_disclaimer": "## Avertissement",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 德语 ─────────────────────────────────────────────────────────────
+    "de": {
+        "metadata_fields": ["Wortanzahl", "Lesezeit", "Daten bis", "Erstellt", "Modus", "Skill-Version"],
+        "metadata_label": "**Metadaten**:",
+        "references_label": "**Quellen**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Quellen",
+        "refs_count_format": lambda count: f"Insgesamt {count} Quelle" if count == 1 else f"Insgesamt {count} Quellen",
+
+        "toc_heading": "## Inhaltsverzeichnis",
+        "disclaimer_title": "## Haftungsausschluss",
+        "disclaimer_text": "Dieser Bericht basiert auf öffentlich zugänglichen Daten und stellt keine Anlageberatung dar. Zweifelhafte Daten sind gekennzeichnet.",
+        "report_generated": "*Bericht erstellt: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadaten\*\*:',
+            "references_pattern": r'> \*\*Quellen\*\*',
+            "tail_refs": "## Quellen",
+            "tail_disclaimer": "## Haftungsausschluss",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 葡萄牙语 ──────────────────────────────────────────────────────────
+    "pt": {
+        "metadata_fields": ["Contagem de palavras", "Tempo de leitura", "Dados até", "Gerado em", "Modo", "Versão Skill"],
+        "metadata_label": "**Metadados**:",
+        "references_label": "**Referências**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Referências",
+        "refs_count_format": "Total de {count} fontes",
+
+        "toc_heading": "## Índice",
+        "disclaimer_title": "## Isenção de responsabilidade",
+        "disclaimer_text": "Este relatório é baseado em dados públicos e não constitui aconselhamento de investimento. Dados duvidosos estão sinalizados.",
+        "report_generated": "*Relatório gerado: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadados\*\*:',
+            "references_pattern": r'> \*\*Referências\*\*',
+            "tail_refs": "## Referências",
+            "tail_disclaimer": "## Isenção de responsabilidade",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 意大利语 ──────────────────────────────────────────────────────────
+    "it": {
+        "metadata_fields": ["Conteggio parole", "Tempo di lettura", "Dati fino al", "Generato", "Modalità", "Versione Skill"],
+        "metadata_label": "**Metadati**:",
+        "references_label": "**Fonti**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Fonti",
+        "refs_count_format": "Totale {count} fonti",
+
+        "toc_heading": "## Indice",
+        "disclaimer_title": "## Dichiarazione di non responsabilità",
+        "disclaimer_text": "Il presente rapporto si basa su dati pubblici e non costituisce consulenza in materia di investimenti. I dati dubbi sono contrassegnati.",
+        "report_generated": "*Rapporto generato: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadati\*\*:',
+            "references_pattern": r'> \*\*Fonti\*\*',
+            "tail_refs": "## Fonti",
+            "tail_disclaimer": "## Dichiarazione di non responsabilità",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 荷兰语 ────────────────────────────────────────────────────────────
+    "nl": {
+        "metadata_fields": ["Woordenaantal", "Leestijd", "Gegevens tot", "Gegenereerd", "Modus", "Skill-versie"],
+        "metadata_label": "**Metadata**:",
+        "references_label": "**Bronnen**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Bronnen",
+        "refs_count_format": "Totaal {count} bronnen",
+
+        "toc_heading": "## Inhoudsopgave",
+        "disclaimer_title": "## Vrijwaring",
+        "disclaimer_text": "Dit rapport is gebaseerd op openbare gegevens en vormt geen beleggingsadvies. Twijfelachtige gegevens zijn gemarkeerd.",
+        "report_generated": "*Rapport gegenereerd: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadata\*\*:',
+            "references_pattern": r'> \*\*Bronnen\*\*',
+            "tail_refs": "## Bronnen",
+            "tail_disclaimer": "## Vrijwaring",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 瑞典语 ────────────────────────────────────────────────────────────
+    "sv": {
+        "metadata_fields": ["Ordantal", "Lästid", "Data till", "Skapad", "Läge", "Skill-version"],
+        "metadata_label": "**Metadata**:",
+        "references_label": "**Källor**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Källor",
+        "refs_count_format": "Totalt {count} källor",
+
+        "toc_heading": "## Innehållsförteckning",
+        "disclaimer_title": "## Ansvarsfriskrivning",
+        "disclaimer_text": "Denna rapport är baserad på offentligt tillgängliga data och utgör inte investeringsrådgivning. Tveksamma data är markerade.",
+        "report_generated": "*Rapport genererad: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadata\*\*:',
+            "references_pattern": r'> \*\*Källor\*\*',
+            "tail_refs": "## Källor",
+            "tail_disclaimer": "## Ansvarsfriskrivning",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 俄语 ─────────────────────────────────────────────────────────────
+    "ru": {
+        "metadata_fields": ["Количество слов", "Время чтения", "Данные до", "Создано", "Режим", "Версия Skill"],
+        "metadata_label": "**Метаданные**:",
+        "references_label": "**Источники**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "мин",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Источники",
+        "refs_count_format": "Всего {count} источников",
+
+        "toc_heading": "## Содержание",
+        "disclaimer_title": "## Отказ от ответственности",
+        "disclaimer_text": "Данный отчет основан на общедоступных данных и не является инвестиционной рекомендацией. Сомнительные данные отмечены.",
+        "report_generated": "*Отчет создан: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Метаданные\*\*:',
+            "references_pattern": r'> \*\*Источники\*\*',
+            "tail_refs": "## Источники",
+            "tail_disclaimer": "## Отказ от ответственности",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 阿拉伯语 ──────────────────────────────────────────────────────────
+    "ar": {
+        "metadata_fields": ["عدد الكلمات", "وقت القراءة", "البيانات حتى", "تاريخ الإنشاء", "الوضع", "إصدار المهارة"],
+        "metadata_label": "**البيانات الوصفية**:",
+        "references_label": "**المصادر**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "دقيقة",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## المصادر",
+        "refs_count_format": "إجمالي {count} مصدرًا",
+
+        "toc_heading": "## المحتويات",
+        "disclaimer_title": "## إخلاء المسؤولية",
+        "disclaimer_text": "يعتمد هذا التقرير على بيانات متاحة للعموم ولا يشكل نصيحة استثمارية. تم وضع علامات على البيانات المشكوك فيها.",
+        "report_generated": "*تاريخ إنشاء التقرير: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*البيانات الوصفية\*\*:',
+            "references_pattern": r'> \*\*المصادر\*\*',
+            "tail_refs": "## المصادر",
+            "tail_disclaimer": "## إخلاء المسؤولية",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 印地语 ────────────────────────────────────────────────────────────
+    "hi": {
+        "metadata_fields": ["शब्द गणना", "पढ़ने का समय", "डेटा तक", "निर्माण समय", "मोड", "कौशल संस्करण"],
+        "metadata_label": "**मेटाडेटा**:",
+        "references_label": "**स्रोत**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "मिनट",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## स्रोत",
+        "refs_count_format": "कुल {count} स्रोत",
+
+        "toc_heading": "## विषय सूची",
+        "disclaimer_title": "## अस्वीकरण",
+        "disclaimer_text": "यह रिपोर्ट सार्वजनिक डेटा पर आधारित है और निवेश सलाह का गठन नहीं करती है। संदिग्ध डेटा को चिह्नित किया गया है।",
+        "report_generated": "*रिपोर्ट निर्माण समय: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*मेटाडेटा\*\*:',
+            "references_pattern": r'> \*\*स्रोत\*\*',
+            "tail_refs": "## स्रोत",
+            "tail_disclaimer": "## अस्वीकरण",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 越南语 ────────────────────────────────────────────────────────────
+    "vi": {
+        "metadata_fields": ["Số từ", "Thời gian đọc", "Dữ liệu đến", "Tạo lúc", "Chế độ", "Phiên bản Skill"],
+        "metadata_label": "**Siêu dữ liệu**:",
+        "references_label": "**Nguồn tham khảo**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "phút",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Nguồn tham khảo",
+        "refs_count_format": "Tổng số {count} nguồn",
+
+        "toc_heading": "## Mục lục",
+        "disclaimer_title": "## Tuyên bố miễn trách",
+        "disclaimer_text": "Báo cáo này được tổng hợp từ dữ liệu công khai và không cấu thành lời khuyên đầu tư. Dữ liệu nghi ngờ đã được đánh dấu.",
+        "report_generated": "*Báo cáo tạo lúc: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Siêu dữ liệu\*\*:',
+            "references_pattern": r'> \*\*Nguồn tham khảo\*\*',
+            "tail_refs": "## Nguồn tham khảo",
+            "tail_disclaimer": "## Tuyên bố miễn trách",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 印尼语 ────────────────────────────────────────────────────────────
+    "id": {
+        "metadata_fields": ["Jumlah kata", "Waktu baca", "Data hingga", "Dibuat", "Mode", "Versi Skill"],
+        "metadata_label": "**Metadata**:",
+        "references_label": "**Referensi**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "mnt",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Referensi",
+        "refs_count_format": "Total {count} sumber",
+
+        "toc_heading": "## Daftar Isi",
+        "disclaimer_title": "## Penyangkalan",
+        "disclaimer_text": "Laporan ini disusun berdasarkan data publik dan tidak merupakan saran investasi. Data yang meragukan telah ditandai.",
+        "report_generated": "*Laporan dibuat: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadata\*\*:',
+            "references_pattern": r'> \*\*Referensi\*\*',
+            "tail_refs": "## Referensi",
+            "tail_disclaimer": "## Penyangkalan",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 泰语 ──────────────────────────────────────────────────────────────
+    "th": {
+        "metadata_fields": ["จำนวนคำ", "เวลาอ่าน", "ข้อมูลถึง", "สร้างเมื่อ", "โหมด", "เวอร์ชัน Skill"],
+        "metadata_label": "**ข้อมูลเมตา**:",
+        "references_label": "**แหล่งอ้างอิง**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "นาที",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## แหล่งอ้างอิง",
+        "refs_count_format": "รวม {count} แหล่งที่มา",
+
+        "toc_heading": "## สารบัญ",
+        "disclaimer_title": "## ข้อจำกัดความรับผิดชอบ",
+        "disclaimer_text": "รายงานนี้รวบรวมจากข้อมูลสาธารณะและไม่ถือเป็นคำแนะนำด้านการลงทุน ข้อมูลที่น่าสงสัยถูกทำเครื่องหมายไว้",
+        "report_generated": "*รายงานสร้างเมื่อ: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*ข้อมูลเมตา\*\*:',
+            "references_pattern": r'> \*\*แหล่งอ้างอิง\*\*',
+            "tail_refs": "## แหล่งอ้างอิง",
+            "tail_disclaimer": "## ข้อจำกัดความรับผิดชอบ",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 土耳其语 ──────────────────────────────────────────────────────────
+    "tr": {
+        "metadata_fields": ["Kelime sayısı", "Okuma süresi", "Veri tarihine kadar", "Oluşturma zamanı", "Mod", "Skill Sürümü"],
+        "metadata_label": "**Meta veri**:",
+        "references_label": "**Kaynaklar**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "dk",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Kaynaklar",
+        "refs_count_format": "Toplam {count} kaynak",
+
+        "toc_heading": "## İçindekiler",
+        "disclaimer_title": "## Sorumluluk reddi",
+        "disclaimer_text": "Bu rapor kamuya açık verilere dayanmaktadır ve yatırım tavsiyesi niteliği taşımaz. Şüpheli veriler işaretlenmiştir.",
+        "report_generated": "*Rapor oluşturma zamanı: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Meta veri\*\*:',
+            "references_pattern": r'> \*\*Kaynaklar\*\*',
+            "tail_refs": "## Kaynaklar",
+            "tail_disclaimer": "## Sorumluluk reddi",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+    # ── 波兰语 ────────────────────────────────────────────────────────────
+    "pl": {
+        "metadata_fields": ["Liczba słów", "Czas czytania", "Dane do", "Wygenerowano", "Tryb", "Wersja Skill"],
+        "metadata_label": "**Metadane**:",
+        "references_label": "**Źródła**:",
+        "sep": " · ",
+        "field_sep": ": ",
+        "minute_unit": "min",
+        "chapter_heading": lambda n, title: f"## {n}. {title}",
+        "toc_prefix": lambda n: f"{n}.",
+        "toc_line": lambda prefix, title, anchor: f"- [{prefix} {title}](#{anchor})",
+        "refs_prefix": "## Źródła",
+        "refs_count_format": "Łącznie {count} źródeł",
+
+        "toc_heading": "## Spis treści",
+        "disclaimer_title": "## Zrzeczenie się odpowiedzialności",
+        "disclaimer_text": "Raport został opracowany na podstawie danych publicznych i nie stanowi porady inwestycyjnej. Wątpliwe dane zostały oznaczone.",
+        "report_generated": "*Raport wygenerowano: {time}*",
+        "check": {
+            "metadata_pattern": r'> \*\*Metadane\*\*:',
+            "references_pattern": r'> \*\*Źródła\*\*',
+            "tail_refs": "## Źródła",
+            "tail_disclaimer": "## Zrzeczenie się odpowiedzialności",
+            "ch_number_pattern": r'^## \d+\.',
+            "ch_has_number_check": True,
+        }
+    },
+}
+
+
+def get_lang_config(lang: str) -> dict:
+    """Get language config for the given language code.
+
+    Falls back to English for unsupported or unknown languages.
+    """
+    return LANG_CONFIG.get(lang, LANG_CONFIG["en"])

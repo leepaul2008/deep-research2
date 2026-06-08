@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""
-Deep Research Tools — Check subcommands (encoding, headers, metadata, etc.)
-"""
 import json
 import os
 import re
+
+from lang_config import get_lang_config
+
 
 # ── Profile loader ────────────────────────────────────────────────────────
 
 _PROFILES_CACHE = None
 
+
 def load_profile(mode: str) -> dict:
-    """Load mode profile from profiles.json. Returns dict with min_chapters,
-    min_paragraphs, max_chars for the given mode ('quick'/'standard'/'deep')."""
     global _PROFILES_CACHE
     if _PROFILES_CACHE is None:
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,14 +24,13 @@ def load_profile(mode: str) -> dict:
 # ── Mojibake & Encoding ──────────────────────────────────────────────────
 
 MOJIBAKE_PATTERNS = [
-    '\ufffd',           # replacement character
-    '涓枃', '绯荤粺', '鍦ㄧ嚎',  # GBK→UTF-8 typical
-    'ç³»', 'å·²',       # Latin-1→UTF-8 typical
+    '\ufffd',
+    '涓枃', '绯荤粺', '鍦ㄧ嚎',
+    'ç³»', 'å·²',
 ]
 
 
 def check_encoding(filepath: str) -> dict:
-    """Check UTF-8 without BOM, no replacement chars, no Mojibake."""
     issues = []
     with open(filepath, 'rb') as f:
         raw = f.read()
@@ -58,7 +56,6 @@ def check_encoding(filepath: str) -> dict:
 # ── Word Count ────────────────────────────────────────────────────────────
 
 def _clean_text(filepath: str) -> str:
-    """Read file and strip markdown syntax, return cleaned text."""
     with open(filepath, 'r', encoding='utf-8') as f:
         text = f.read()
     text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
@@ -77,18 +74,14 @@ def _clean_text(filepath: str) -> str:
 
 
 def word_count(filepath: str) -> int:
-    """Count all meaningful non-whitespace chars (total chars)."""
     cleaned = re.sub(r'\s+', '', _clean_text(filepath))
     return len(cleaned)
 
 
-
-
-
 # ── JSON Validation ───────────────────────────────────────────────────────
 
+
 def json_validate(filepath: str) -> dict:
-    """Check file is valid JSON."""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             json.load(f)
@@ -99,15 +92,22 @@ def json_validate(filepath: str) -> dict:
 
 # ── Header Format Checks ──────────────────────────────────────────────────
 
-def check_headers(filepath: str) -> dict:
-    """Validate ## and ### header formats."""
+
+def check_headers(filepath: str, lang: str = "zh") -> dict:
     issues = []
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
+    cfg = get_lang_config(lang)
     for i, line in enumerate(lines):
         stripped = line.rstrip('\n\r')
-        if re.match(r'^## .*[0-9]\.', stripped):
-            issues.append(f"Line {i + 1}: ## header should not contain number: '{stripped[:60]}'")
+        if cfg['check']['ch_has_number_check']:
+            # non-zh: ## headers SHOULD start with number
+            if re.match(r'^## (?!Table of Contents|目录|目录|References|参考来源|参照元|Referencias|Réf|Quellen|Fonti|Bronnen|Källor|Источники|المصادر|स्रोत|Nguồn|Kaynaklar|Źródła|Disclaimer|免责|Descargo|Avertissement|Haftungsausschluss|Isenção|Dichiarazione|Vrijwaring|Ansvarsfriskrivning|Отказ|إخلاء|अस्वीकरण|Tuyên bố|Penyangkalan|ข้อจำกัด|Sorumluluk|Zrzeczenie)', stripped) and not re.match(r'^## \d+\.', stripped):
+                issues.append(f"Line {i + 1}: ## header should start with number: '{stripped[:60]}'")
+        else:
+            # zh: ## headers should NOT contain arabic numeral
+            if re.match(r'^## .*[0-9]\.', stripped):
+                issues.append(f"Line {i + 1}: ## header should not contain number: '{stripped[:60]}'")
         if re.match(r'^### [一二三四五六七八九十]', stripped):
             issues.append(f"Line {i + 1}: ### header uses Chinese numeral: '{stripped[:60]}'")
     return {"passed": len(issues) == 0, "issues": issues}
@@ -115,59 +115,57 @@ def check_headers(filepath: str) -> dict:
 
 # ── Chapter Number Compliance ─────────────────────────────────────────────
 
-CHINESE_NUMS = '一二三四五六七八九十十一十二十三十四十五'
 
-
-def check_chapter_numbers(filepath: str) -> dict:
-    """Check ## chapter headers use Chinese numerals (一、二、三...)."""
+def check_chapter_numbers(filepath: str, lang: str = "zh") -> dict:
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
-    pattern = re.compile(r'^## ([' + CHINESE_NUMS + r']+)、')
+    cfg = get_lang_config(lang)
+    pattern = re.compile(cfg['check']['ch_number_pattern'])
     hits = [i + 1 for i, line in enumerate(lines) if pattern.match(line.rstrip('\n\r'))]
     return {"passed": len(hits) >= 1, "chapter_lines": hits, "count": len(hits)}
 
 
 # ── Metadata Check ────────────────────────────────────────────────────────
 
-META_FIELDS = ['总字数', '阅读时间', '数据截至', '生成时间', '调研模式', 'Skill版本']
 
-
-def check_metadata(filepath: str) -> dict:
-    """Check metadata line has all 6 fields + 参考来源 line exists."""
+def check_metadata(filepath: str, lang: str = "zh") -> dict:
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
+    cfg = get_lang_config(lang)
     issues = []
-    meta_match = re.search(r'> \*\*元数据\*\*：(.+)', content)
+    meta_match = re.search(cfg['check']['metadata_pattern'], content)
     if not meta_match:
-        return {"passed": False, "issues": ["Metadata line '> **元数据**：' not found"]}
-    meta_line = meta_match.group(1)
-    for field in META_FIELDS:
+        return {"passed": False, "issues": [f"Metadata line '{cfg['metadata_label']}' not found"]}
+    meta_line = content[meta_match.end():].split('\n')[0]
+    for field in cfg['metadata_fields']:
         if field not in meta_line:
             issues.append(f"Metadata field '{field}' missing")
-    if not re.search(r'> \*\*参考来源\*\*', content):
-        issues.append("Reference source line '> **参考来源**：' not found")
+    if not re.search(cfg['check']['references_pattern'], content):
+        issues.append(f"Reference source line '{cfg['references_label']}' not found")
     return {"passed": len(issues) == 0, "issues": issues}
 
 
 # ── TOC Check ─────────────────────────────────────────────────────────────
 
-def check_toc(filepath: str, expected: int = None) -> dict:
-    """Check TOC exists, is unique, matches expected count."""
+
+def check_toc(filepath: str, expected: int = None, lang: str = "zh") -> dict:
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     issues = []
-    toc_headings = [i for i, line in enumerate(lines) if line.strip() == '## 目录']
+    cfg = get_lang_config(lang)
+    toc_heading = cfg['toc_heading']
+    toc_headings = [i for i, line in enumerate(lines) if line.strip() == toc_heading]
     if len(toc_headings) == 0:
-        return {"passed": False, "issues": ["'## 目录' heading not found"], "count": 0}
+        return {"passed": False, "issues": [f"'{toc_heading}' heading not found"], "count": 0}
     elif len(toc_headings) > 1:
-        issues.append(f"'## 目录' appears {len(toc_headings)} times (should be 1)")
+        issues.append(f"'{toc_heading}' appears {len(toc_headings)} times (should be 1)")
     toc_start = toc_headings[0]
     toc_entries = 0
     for line in lines[toc_start + 1:]:
         stripped = line.strip()
         if stripped.startswith('## '):
             break
-        if stripped.startswith('- [') or stripped.startswith('- '):
+        if stripped.startswith('- ['):
             toc_entries += 1
     if expected is not None and toc_entries != expected:
         issues.append(f"TOC has {toc_entries} entries, expected {expected}")
@@ -177,24 +175,29 @@ def check_toc(filepath: str, expected: int = None) -> dict:
 # ── Tail Check ────────────────────────────────────────────────────────────
 
 
-def check_tail(filepath: str) -> dict:
-    """Check tail sections exist (## 参考来源 + ## 免责声明)."""
+def check_tail(filepath: str, lang: str = "zh") -> dict:
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
-
+    cfg = get_lang_config(lang)
     issues = []
-    # Backward compat: also accept old ## 数据来源 for unconverted reports
-    if '## 参考来源' not in content and '## 数据来源' not in content:
-        issues.append("Tail section '## 参考来源' not found")
-    if '## 免责声明' not in content:
-        issues.append("'## 免责声明' not found")
+    refs_title = cfg['check']['tail_refs']
+    disc_title = cfg['check']['tail_disclaimer']
+
+    accepted_refs = [refs_title, "## 数据来源"]
+    for title in accepted_refs:
+        if title in content:
+            break
+    else:
+        issues.append(f"Tail section '{refs_title}' not found")
+    if disc_title not in content:
+        issues.append(f"'{disc_title}' not found")
     return {"passed": len(issues) == 0, "issues": issues}
 
 
 # ── Year Density ──────────────────────────────────────────────────────────
 
+
 def year_density(filepath: str, target_year: int) -> dict:
-    """Calculate percentage of target_year + target_year-1 data."""
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     years = re.findall(r'20[2-9]\d', content)
@@ -214,8 +217,8 @@ def year_density(filepath: str, target_year: int) -> dict:
 
 # ── Data Pool Check ───────────────────────────────────────────────────────
 
+
 def check_datapool(filepath: str, mode: str) -> dict:
-    """Validate data-pool.json structure (unified field names for all modes)."""
     with open(filepath, 'r', encoding='utf-8') as f:
         try:
             data = json.load(f)
@@ -271,39 +274,23 @@ def check_datapool(filepath: str, mode: str) -> dict:
 
 # ── Chapter Validation (single-command for sub-agents) ─────────────────
 
+
 def validate_chapter(filepath: str, expected_sections: int = 0) -> dict:
-    """Run all chapter-level checks and return single JSON result.
-    
-    This is the ONE command chapter agents should run instead of
-    calling 5+ separate check-* commands. Keeps sub-agents from
-    writing inline validation code.
-    """
     results = {}
-    
-    # encoding
     enc = check_encoding(filepath)
     results['encoding'] = enc['passed']
-    
-    # headers
     hdr = check_headers(filepath)
     results['headers'] = hdr['passed']
-    
-    # word count
     try:
         wc = word_count(filepath)
     except Exception:
         wc = 0
     results['word_count'] = wc
-    
-    # blockquote at start (skip optional heading on line 1)
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = [l.strip() for l in f.readlines() if l.strip()]
-    # If first line is a heading (# ...), check second line
     check_lines = lines[1:] if lines and lines[0].startswith('#') else lines
     has_bq = len(check_lines) > 0 and check_lines[0].startswith('>')
     results['has_blockquote'] = has_bq
-    
-    # paragraph count (non-heading, non-table, non-empty, non-quote lines)
     para_count = 0
     in_table = False
     for line in lines:
@@ -324,35 +311,23 @@ def validate_chapter(filepath: str, expected_sections: int = 0) -> dict:
             continue
         para_count += 1
     results['paragraphs'] = para_count
-    
-    # table count
     table_count = sum(1 for l in lines if l.startswith('|---'))
     results['tables'] = table_count
-    
-    # section headers found
     section_headers = [l.lstrip('#').strip() for l in lines if l.startswith('###')]
     results['sections'] = section_headers
     results['section_count'] = len(section_headers)
     results['sections_ok'] = expected_sections == 0 or len(section_headers) == expected_sections
-    
-    # overall
     checks = [results['encoding'], results['headers'], results['has_blockquote'],
               results['sections_ok']]
     results['passed'] = all(checks)
-    
     return results
 
 
 # ── Batch Chapter Validation (Parallel) ───────────────────────────────────
 
+
 def validate_all_chapters(chapters_dir: str, chapter_count: int, expected_sections: int = 0) -> dict:
-    """Validate all chapters in parallel using ThreadPoolExecutor.
-
-    Returns aggregated results with per-chapter pass/fail status.
-    Failed chapters are listed separately for targeted regeneration.
-    """
     from concurrent.futures import ThreadPoolExecutor, as_completed
-
     results = {}
     with ThreadPoolExecutor(max_workers=min(chapter_count, 8)) as ex:
         futures = {}
@@ -362,7 +337,6 @@ def validate_all_chapters(chapters_dir: str, chapter_count: int, expected_sectio
                 results[i] = {"passed": False, "error": f"chapter-{i}.md not found"}
                 continue
             futures[ex.submit(validate_chapter, path, expected_sections)] = i
-
         for fut in as_completed(futures):
             chapter_num = futures[fut]
             try:
@@ -370,11 +344,9 @@ def validate_all_chapters(chapters_dir: str, chapter_count: int, expected_sectio
                 results[chapter_num] = result
             except Exception as e:
                 results[chapter_num] = {"passed": False, "error": str(e)}
-
     sorted_results = {k: results[k] for k in sorted(results.keys())}
     failed_chapters = {str(num): r for num, r in sorted_results.items()
                        if not r.get('passed', False)}
-
     return {
         "passed": len(failed_chapters) == 0,
         "total": chapter_count,
@@ -387,13 +359,8 @@ def validate_all_chapters(chapters_dir: str, chapter_count: int, expected_sectio
 
 # ── Full QA Report ────────────────────────────────────────────────────────
 
-def _run_checks_concurrent(filepath: str, target_year: int) -> dict:
-    """Run all file-level checks concurrently using ThreadPoolExecutor.
-    
-    Independent checks (encoding, word_count, headers, chapter_numbers,
-    metadata, tail, year_density) run in parallel via threads since they
-    are all I/O-bound (reading same file independently).
-    """
+
+def _run_checks_concurrent(filepath: str, target_year: int, lang: str = "zh") -> dict:
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     def _wc(p):
@@ -401,17 +368,17 @@ def _run_checks_concurrent(filepath: str, target_year: int) -> dict:
         return {'word_count': wc}
 
     def _toc(p, expected):
-        return {'toc': check_toc(p, expected=expected)}
+        return {'toc': check_toc(p, expected=expected, lang=lang)}
 
     results = {}
     with ThreadPoolExecutor(max_workers=6) as ex:
         futures = {
             ex.submit(check_encoding, filepath): 'encoding',
             ex.submit(_wc, filepath): 'word_count_raw',
-            ex.submit(check_headers, filepath): 'headers',
-            ex.submit(check_chapter_numbers, filepath): 'chapter_numbers',
-            ex.submit(check_metadata, filepath): 'metadata',
-            ex.submit(check_tail, filepath): 'tail',
+            ex.submit(check_headers, filepath, lang): 'headers',
+            ex.submit(check_chapter_numbers, filepath, lang): 'chapter_numbers',
+            ex.submit(check_metadata, filepath, lang): 'metadata',
+            ex.submit(check_tail, filepath, lang): 'tail',
             ex.submit(year_density, filepath, target_year): 'year_density',
         }
         for fut in as_completed(futures):
@@ -424,19 +391,13 @@ def _run_checks_concurrent(filepath: str, target_year: int) -> dict:
                     results[key] = result
             except Exception as e:
                 results[key] = {"passed": False, "issues": [f"Check error: {e}"]}
-
-    # chapter_numbers needed for TOC expected count, so TOC must be done after
     expected = results.get('chapter_numbers', {}).get('count', 0)
-    results['toc'] = check_toc(filepath, expected=expected)
-
+    results['toc'] = check_toc(filepath, expected=expected, lang=lang)
     return results
 
 
-def qa_report(filepath: str, mode: str, target_year: int) -> dict:
-    """Run all checks and return aggregated result."""
-    raw = _run_checks_concurrent(filepath, target_year)
-
-    # Build results dict in the expected schema
+def qa_report(filepath: str, mode: str, target_year: int, lang: str = "zh") -> dict:
+    raw = _run_checks_concurrent(filepath, target_year, lang)
     results = {}
     results['encoding'] = raw.get('encoding', {"passed": False, "issues": ["missing"]})
     results['headers'] = raw.get('headers', {"passed": False, "issues": ["missing"]})
@@ -445,14 +406,11 @@ def qa_report(filepath: str, mode: str, target_year: int) -> dict:
     results['toc'] = raw.get('toc', {"passed": False, "issues": ["missing"]})
     results['tail'] = raw.get('tail', {"passed": False, "issues": ["missing"]})
     results['year_density'] = raw.get('year_density', {"passed": False, "issues": ["missing"]})
-
     wc = raw.get('word_count_raw', 0)
     prof = load_profile(mode)
     limit = prof.get('max_chars', 3000)
-    # word_count is informational — does NOT block qa_report passed
     results['word_count'] = {"passed": True, "count": wc, "limit": limit, "exceeded": wc > limit,
                               "issues": [] if wc <= limit else [f"{wc} > {limit} limit (informational)"]}
-
     all_passed = all(r.get('passed', False) for r in results.values())
     failures = {name: r.get('issues', []) for name, r in results.items()
                 if not r.get('passed', False) and r.get('issues')}

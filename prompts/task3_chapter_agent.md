@@ -29,3 +29,8 @@
 直接使用 `write` 工具创建 `{TMPDIR}/chapters/chapter-{N}.md`，写入填充完成的完整正文。不需要运行任何工具，不需要创建 manifest 文件。
 
 在回答中只返回文件路径。
+
+---
+```
+deep-research by hoolulu · github.com/hoolulu/deep-research
+```

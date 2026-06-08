@@ -4,7 +4,7 @@
 - 大纲文件：{TMPDIR}/outline.json
 - 注意事项：{TMPDIR}/cautions.json（数据质量警告，装配阶段不写入报告但可参考）
 - 章节目录：{TMPDIR}/chapters/（包含 chapter-1.md, chapter-2.md…）
-- 输出目录：`案例报告/`（`~/.opencode/skills/deep-research/案例报告/`）
+- 输出目录：`reports/`（`~/.opencode/skills/deep-research/reports/`）
 - QA 工具：{TOOLSDIR}/dr_tools.py（已有命令：assemble-report, convert-citations, qa-report, check-encoding, check-headers, check-chapter-numbers, check-metadata, check-toc, check-tail, word-count, year-density）
 - 数据受限标记：`{data_limited}`（true 时数据来源不足，需降低质量预期）
 
@@ -23,9 +23,9 @@ python {TOOLSDIR}/dr_tools.py assemble-report \
   --datapool {TMPDIR}/data-pool.json \
   --mode {depth_mode} \
   --target-year {target_year} \
-  --output 案例报告/
+  --output reports/
 ```
-（`案例报告/` 为默认输出目录，`--output` 可指定其他目录；脚本自动根据报告标题+日期生成文件名）
+（`reports/` 为默认输出目录，`--output` 可指定其他目录；脚本自动根据报告标题+日期生成文件名）
 
 ## Step 2 — 引用格式转换（[N] → [(N)](#refN)）
 
@@ -46,7 +46,7 @@ python {TOOLSDIR}/dr_tools.py convert-citations \
 - `depth_mode`：从 outline.json 读取
 - `target_year`：从 outline.json 的 time_anchor.target_year 读取
 - `生成时间`：当前 `date` 命令值
-- `输出路径`：优先用户指定，无则 `案例报告/`
+- `输出路径`：优先用户指定，无则 `reports/`
 - `data_limited`：如为 true，报告开头追加醒目标注 `> ⚠️ **数据说明**：本次调研数据来源较为有限（共引用 N 个来源），部分结论基于有限样本，仅供参考。`，并将 QA 的年份密度和段落达标标准各降低 30%
 - **总字数在装配后自动计算**，无需提前准备
 
@@ -76,7 +76,7 @@ python {TOOLSDIR}/dr_tools.py year-density <报告> --target-year N # 年份
 ☐ 段落数：抽 2 章，每章 ≥ 5 段
 ☐ 目录为单层结构：仅包含章级标题，无子节缩进
 ☐ 三段式顺序：报告第 1 行为 `# ` 标题，第 2-6 行内含元数据行（以 `> **元数据**：` 开头），元数据行后紧跟 `## 目录`
-☐ **路径核验**：报告保存路径属于默认目录（`案例报告/`）或用户指定目录，两者之一；既非默认也非用户指定 → 标记"路径异常"不通过
+☐ **路径核验**：报告保存路径属于默认目录（`reports/`）或用户指定目录，两者之一；既非默认也非用户指定 → 标记"路径异常"不通过
 ☐ 时间戳：尾部时间与 date 匹配
 ☐ 反方观点：至少 1 处
 ☐ 跨来源归因一致
@@ -113,3 +113,9 @@ python {TOOLSDIR}/dr_tools.py year-density <报告> --target-year N # 年份
 ```
 
 在回答中只输出报告路径。
+
+
+---
+```
+deep-research by hoolulu · github.com/hoolulu/deep-research
+```
